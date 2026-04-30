@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>License | Free-Edu Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Syncopate:wght@700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #010816;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent: #3a86ff;
+            --text-main: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.5);
+            --danger: #ff4d4d;
+            --success: #00ff88;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        html, body {
+            height: 100%;
+            background: transparent;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        .popup-wrap {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            background: #0a111a;
+            border-radius: 30px;
+            border: 1px solid var(--glass-border);
+            overflow: hidden;
+        }
+
+        h2 {
+            color: var(--accent);
+            margin-bottom: 20px;
+            font-family: 'Syncopate', sans-serif;
+            font-size: 1rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .scroll-area {
+            overflow-y: auto;
+            flex-grow: 1;
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            scrollbar-width: thin;
+        }
+        .scroll-area::-webkit-scrollbar { width: 4px; }
+        .scroll-area::-webkit-scrollbar-track { background: transparent; }
+        .scroll-area::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+        .scroll-inner {
+            padding: 20px;
+            text-align: left;
+        }
+
+        h3 {
+            color: var(--accent);
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            font-family: 'Syncopate', sans-serif;
+        }
+
+        p { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 15px; line-height: 1.6; }
+
+        ul { list-style: none; padding: 0; color: var(--text-dim); font-size: 0.85rem; line-height: 1.8; }
+        ul li { margin-bottom: 10px; }
+
+        hr { border: 0; border-top: 1px solid var(--glass-border); margin: 20px 0; }
+
+        .close-btn {
+            margin-top: 20px;
+            background: var(--accent);
+            border: none;
+            padding: 12px 30px;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .close-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(58,134,255,0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="popup-wrap">
+        <h2>Terms &amp; License</h2>
+
+        <div class="scroll-area">
+            <div class="scroll-inner">
+
+                <h3>01. CONDUCT &amp; COMPLIANCE</h3>
+
+                <p style="color:var(--danger);font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:8px;">🚫 Piracy Strictly Prohibited</p>
+                <p>Downloading and piracy is strictly prohibited. This platform is 100% Free and Open Source for academic support only. Users are strictly prohibited from attempting to download, "rip," or redistribute content.</p>
+
+                <p style="color:var(--success);font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:8px;">🤍 Open Access</p>
+                <p>Free to use, modify, and distribute educational content. This site operates in accordance with the <b>YouTube Terms of Service</b>. Users must not attempt to bypass advertisements or modify core player functionality.</p>
+
+                <p style="color:var(--accent);font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:8px;">📂 Open Source (MIT)</p>
+                <p style="margin-bottom:25px;">The code for this portal is licensed under <b>MIT</b>. You may modify the design for personal use, but video content belongs to the original YouTube copyright holders.</p>
+
+                <hr>
+
+                <h3>02. CONTENT DISCLAIMER</h3>
+                <ul>
+                    <li><b>• Ownership:</b> All videos belong strictly to their creators on YouTube.</li>
+                    <li><b>• No Hosting:</b> We do not host or upload video files. We use the <b>YouTube API</b>.</li>
+                    <li><b>• Availability:</b> Content is determined by uploaders; if they remove it, it disappears here.</li>
+                    <li><b>• Affiliation:</b> Reference to schools is not an endorsement.</li>
+                </ul>
+
+                <hr>
+
+                <h3>03. CONTACT &amp; DMCA</h3>
+                <p>
+                    Creators wishing to remove videos from our directory, please contact us. We remove links within 48 hours.<br><br>
+                    <i>Note: Disabling embedding in YouTube Studio will remove the video here automatically.</i>
+                </p>
+            </div>
+        </div>
+
+        <button class="close-btn" onclick="window.parent.closePopup()">I AGREE</button>
+    </div>
+</body>
+</html>
