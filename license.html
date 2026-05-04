@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>License & Disclaimer — Eduyomi</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    (function () {
+      const saved  = localStorage.getItem('eduyomi-theme')  || 'dark';
+      const accent = localStorage.getItem('eduyomi-accent') || '#7c6af7';
+      document.documentElement.setAttribute('data-theme', saved);
+      document.documentElement.style.setProperty('--accent-custom', accent);
+    })();
+  </script>
+
+  <style>
+    /* ═══════════════════════════════════
+       DESIGN TOKENS — mirrored from main
+    ═══════════════════════════════════ */
+    :root {
+      --font-display: 'Syne', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+      --accent:       var(--accent-custom, #7c6af7);
+      --accent-alt:   color-mix(in srgb, var(--accent) 70%, white 30%);
+      --accent-glow:  color-mix(in srgb, var(--accent) 28%, transparent 72%);
+      --pink:         #f472b6;
+      --radius-pill:  999px;
+      --transition:   200ms cubic-bezier(.4,0,.2,1);
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg:             #0d0e1a;
+      --bg-nav:         rgba(13,14,26,0.90);
+      --surface:        rgba(255,255,255,0.05);
+      --surface-hover:  rgba(255,255,255,0.09);
+      --border:         rgba(255,255,255,0.09);
+      --text-primary:   #eef0ff;
+      --text-secondary: rgba(238,240,255,0.60);
+      --text-muted:     rgba(238,240,255,0.38);
+      --shadow-nav:     0 2px 36px rgba(0,0,0,0.55);
+      --ambient1:       color-mix(in srgb, var(--accent) 9%, transparent);
+      --ambient2:       rgba(244,114,182,0.06);
+    }
+    [data-theme="amoled"] {
+      color-scheme: dark;
+      --bg:             #000000;
+      --bg-nav:         rgba(0,0,0,0.95);
+      --surface:        rgba(255,255,255,0.04);
+      --surface-hover:  rgba(255,255,255,0.08);
+      --border:         rgba(255,255,255,0.07);
+      --text-primary:   #ffffff;
+      --text-secondary: rgba(255,255,255,0.55);
+      --text-muted:     rgba(255,255,255,0.30);
+      --shadow-nav:     0 2px 36px rgba(0,0,0,0.85);
+      --ambient1:       color-mix(in srgb, var(--accent) 7%, transparent);
+      --ambient2:       rgba(244,114,182,0.04);
+    }
+    [data-theme="light"] {
+      color-scheme: light;
+      --bg:             #f5f4fb;
+      --bg-nav:         rgba(245,244,251,0.92);
+      --surface:        rgba(0,0,0,0.04);
+      --surface-hover:  rgba(0,0,0,0.07);
+      --border:         rgba(0,0,0,0.09);
+      --text-primary:   #13111f;
+      --text-secondary: rgba(19,17,31,0.62);
+      --text-muted:     rgba(19,17,31,0.38);
+      --shadow-nav:     0 1px 24px rgba(0,0,0,0.10);
+      --ambient1:       color-mix(in srgb, var(--accent) 7%, transparent);
+      --ambient2:       rgba(244,114,182,0.05);
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    /* Themed scrollbar — applies to the page scrollbar and all children */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 6px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent-alt); }
+    html { scrollbar-width: thin; scrollbar-color: var(--accent) rgba(255,255,255,0.04); }
+    [data-theme="light"]::-webkit-scrollbar-track { background: rgba(0,0,0,0.06); }
+    [data-theme="light"] { scrollbar-color: var(--accent) rgba(0,0,0,0.06); }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* Ambient blobs */
+    .ambient {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background:
+        radial-gradient(ellipse 65% 48% at 16% 20%, var(--ambient1), transparent),
+        radial-gradient(ellipse 55% 42% at 84% 72%, var(--ambient2), transparent);
+      transition: background 0.4s;
+    }
+
+    /* ── Navbar ── */
+    .nav {
+      position: sticky; top: 0; z-index: 400;
+      background: var(--bg-nav);
+      backdrop-filter: blur(18px) saturate(1.6);
+      -webkit-backdrop-filter: blur(18px) saturate(1.6);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow-nav);
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 20px; height: 58px;
+    }
+    .nav-back {
+      display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-primary); cursor: pointer; text-decoration: none;
+      transition: border-color var(--transition), background var(--transition), transform .15s;
+    }
+    .nav-back:hover { border-color: var(--accent); background: var(--surface-hover); transform: scale(1.06); }
+    .nav-back svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .nav-title {
+      font-family: var(--font-display); font-size: .92rem; font-weight: 700;
+      background: linear-gradient(120deg, var(--accent) 0%, var(--accent-alt) 50%, var(--pink) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .nav-spacer { flex: 1; }
+    .nav-tag {
+      font-size: .65rem; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+      padding: 3px 9px; border-radius: var(--radius-pill);
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    }
+
+    /* ── Page layout ── */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 760px; margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center; margin-bottom: 52px;
+    }
+    .hero-icon {
+      width: 64px; height: 64px; border-radius: 18px; margin: 0 auto 20px;
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      border: 1.5px solid color-mix(in srgb, var(--accent) 28%, transparent);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hero-icon svg { width: 32px; height: 32px; stroke: var(--accent); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .hero-title {
+      font-family: var(--font-display); font-size: 2rem; font-weight: 800; line-height: 1.15;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-alt) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      margin-bottom: 10px;
+    }
+    .hero-sub {
+      font-size: .88rem; color: var(--text-muted);
+    }
+
+    /* ── Section card ── */
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 30px;
+      margin-bottom: 20px;
+      transition: border-color var(--transition);
+    }
+    .section-card:hover { border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+    .section-label {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: .65rem; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .section-label .dot {
+      width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0;
+    }
+
+    .section-title {
+      font-family: var(--font-display); font-size: 1.18rem; font-weight: 700;
+      color: var(--text-primary); margin-bottom: 14px; line-height: 1.3;
+    }
+
+    .section-body {
+      font-size: .9rem; line-height: 1.75; color: var(--text-secondary);
+    }
+    .section-body p { margin-bottom: 10px; }
+    .section-body p:last-child { margin-bottom: 0; }
+
+    /* ── Numbered list ── */
+    .clause-list {
+      list-style: none; display: flex; flex-direction: column; gap: 16px;
+      margin-top: 4px;
+    }
+    .clause-list li {
+      display: flex; gap: 14px; align-items: flex-start;
+    }
+    .clause-num {
+      flex-shrink: 0;
+      width: 26px; height: 26px; border-radius: 8px;
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+      color: var(--accent); font-size: .72rem; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .clause-body { font-size: .88rem; line-height: 1.7; color: var(--text-secondary); }
+    .clause-body strong { color: var(--text-primary); font-weight: 600; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 4px 0 18px;
+    }
+
+    /* ── Footer note ── */
+    .footer-note {
+      margin-top: 36px; padding: 18px 22px; border-radius: 14px;
+      background: color-mix(in srgb, var(--accent) 7%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+      font-size: .8rem; color: var(--text-muted); line-height: 1.65; text-align: center;
+    }
+    .footer-note strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="ambient"></div>
+
+<!-- Navbar -->
+<nav class="nav">
+  <button class="nav-back" onclick="window.parent.postMessage('popup:close','*')" title="Back to Eduyomi">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <span class="nav-title">Eduyomi</span>
+  <span class="nav-spacer"></span>
+  <span class="nav-tag">Legal</span>
+</nav>
+
+<!-- Page content -->
+<main class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-icon">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    </div>
+    <h1 class="hero-title">License &amp; Disclaimer</h1>
+    <p class="hero-sub">Please read this document carefully before using Eduyomi.</p>
+  </div>
+
+  <!-- License -->
+  <div class="section-card">
+    <div class="section-label"><span class="dot"></span>License</div>
+    <h2 class="section-title">Terms of Use</h2>
+    <div class="divider"></div>
+    <div class="section-body">
+      <p>This project is provided for <strong style="color:var(--text-primary)">educational and informational purposes only</strong>. The source code of this platform is free to use, modify, and distribute under the condition that proper credit is given to the original creator(s).</p>
+      <p>Redistribution of this project or any derivative work must not be used for commercial purposes without prior written permission from the original author.</p>
+      <p>All rights not explicitly granted herein are reserved by the original author.</p>
+    </div>
+  </div>
+
+  <!-- Content Disclaimer -->
+  <div class="section-card">
+    <div class="section-label"><span class="dot"></span>Disclaimer</div>
+    <h2 class="section-title">Disclaimer of Content</h2>
+    <div class="divider"></div>
+    <div class="section-body">
+      <p><strong style="color:var(--text-primary)">Eduyomi does not host, store, upload, or distribute any videos, media files, links, or educational content of any kind.</strong> All content referenced or displayed through this platform is sourced entirely from third-party external services (including but not limited to YouTube and other public platforms). Eduyomi acts solely as an interface and does not claim ownership, authorship, or responsibility over any such content.</p>
+      <p>All data, subject matter, chapter listings, and topic entries displayed on this platform are provided through user-configured JSON files hosted on external repositories such as GitHub. Eduyomi has no control over the accuracy, legality, completeness, or appropriateness of such data.</p>
+    </div>
+  </div>
+
+  <!-- Liability -->
+  <div class="section-card">
+    <div class="section-label"><span class="dot"></span>Liability</div>
+    <h2 class="section-title">Disclaimer of Liability</h2>
+    <div class="divider"></div>
+    <p style="font-size:.88rem;color:var(--text-secondary);margin-bottom:18px;line-height:1.7;">By accessing and using this platform, you — the user — acknowledge and agree to the following:</p>
+    <ul class="clause-list">
+      <li>
+        <span class="clause-num">1</span>
+        <div class="clause-body"><strong>No Warranty</strong> — This platform is provided "as is" without any warranties, express or implied. No guarantee is made regarding the accuracy, availability, or reliability of any content or feature.</div>
+      </li>
+      <li>
+        <span class="clause-num">2</span>
+        <div class="clause-body"><strong>User Responsibility</strong> — You are solely and entirely responsible for your own actions, decisions, and conduct while using this platform. The platform and its creator(s) shall not be held liable for any direct, indirect, incidental, or consequential damages arising from your use of this site.</div>
+      </li>
+      <li>
+        <span class="clause-num">3</span>
+        <div class="clause-body"><strong>Third-Party Content</strong> — Any videos, links, or resources accessed through this platform are governed by the terms and policies of their respective third-party platforms. Eduyomi has no control over and assumes no responsibility for such content.</div>
+      </li>
+      <li>
+        <span class="clause-num">4</span>
+        <div class="clause-body"><strong>External Repositories</strong> — Data loaded via GitHub or any other external source is entirely the responsibility of the person or entity that configured and published it. Eduyomi is not responsible for the content, accuracy, or legality of any such data.</div>
+      </li>
+      <li>
+        <span class="clause-num">5</span>
+        <div class="clause-body"><strong>No Endorsement</strong> — The display of any content, subject, or topic on this platform does not constitute endorsement, recommendation, or approval by Eduyomi or its creator(s).</div>
+      </li>
+      <li>
+        <span class="clause-num">6</span>
+        <div class="clause-body"><strong>Minors</strong> — If you are under the age of 18, you are advised to use this platform under the supervision of a parent or legal guardian.</div>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Copyright -->
+  <div class="section-card">
+    <div class="section-label"><span class="dot"></span>Copyright</div>
+    <h2 class="section-title">Copyright Notice</h2>
+    <div class="divider"></div>
+    <div class="section-body">
+      <p>All trademarks, service marks, and brand names referenced on this platform belong to their respective owners. Eduyomi makes no claim of ownership over any third-party intellectual property.</p>
+      <p>If you believe any content displayed through this platform infringes upon your rights, please raise the matter directly with the relevant content platform or data provider.</p>
+    </div>
+  </div>
+
+  <!-- Governing Use -->
+  <div class="section-card">
+    <div class="section-label"><span class="dot"></span>Agreement</div>
+    <h2 class="section-title">Governing Use</h2>
+    <div class="divider"></div>
+    <div class="section-body">
+      <p>By continuing to use this platform, you confirm that you have read, understood, and agreed to this License &amp; Disclaimer in full. If you do not agree with any part of this notice, you should discontinue use of this platform immediately.</p>
+    </div>
+  </div>
+
+  <!-- Footer note -->
+  <div class="footer-note">
+    <strong>This notice is subject to change without prior notice.</strong><br>
+    Continued use of the platform constitutes acceptance of any updated terms.
+  </div>
+
+</main>
+</body>
+</html>
