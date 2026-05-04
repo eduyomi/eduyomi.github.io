@@ -2369,7 +2369,7 @@ function _doOpenSourceEditor(activeRepo, token) {
     loading.style.display = 'flex';
     iframe.style.opacity = '0';
 
-    iframe.src = 'curriculum-editor-v12.html';
+    iframe.src = 'curriculum-editor-v11.html';
     iframe.addEventListener('load', function onLoad() {
       iframe.removeEventListener('load', onLoad);
       iframe.dataset.loaded = '1';
