@@ -1,0 +1,3225 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eduyomi JSON Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ═══ PASSWORD GATE ═══ */
+#auth-gate {
+  position: fixed; inset: 0; z-index: 99999;
+  background: #0d0e1a;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+}
+#auth-gate .gate-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 22px;
+  padding: 40px 36px 36px;
+  width: 100%; max-width: 380px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  backdrop-filter: blur(24px);
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+#auth-gate .gate-logo {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px;
+  background: linear-gradient(120deg, #7c6af7 0%, #a78bfa 50%, #f472b6 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite;
+  margin-bottom: 6px;
+}
+#auth-gate .gate-subtitle {
+  font-size: 13px; color: rgba(238,240,255,0.45);
+  margin-bottom: 28px; text-align: center;
+}
+#auth-gate .gate-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: rgba(238,240,255,0.38);
+  align-self: flex-start; margin-bottom: 7px;
+}
+#auth-gate .gate-input-wrap {
+  width: 100%; position: relative; margin-bottom: 14px;
+}
+/* Username field with @eduyomi.app suffix */
+#auth-gate .gate-username-wrap {
+  width: 100%; display: flex; align-items: center;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.11);
+  border-radius: 12px; margin-bottom: 14px;
+  transition: border-color 200ms, background 200ms;
+  overflow: hidden;
+}
+#auth-gate .gate-username-wrap:focus-within {
+  border-color: #7c6af7;
+  background: rgba(124,106,247,0.08);
+}
+#auth-gate .gate-username-wrap input {
+  flex: 1; min-width: 0; height: 44px;
+  padding: 0 0 0 14px;
+  background: transparent; border: none; outline: none;
+  color: #eef0ff; font-family: 'JetBrains Mono', monospace;
+  font-size: 14px; letter-spacing: 0.5px;
+}
+#auth-gate .gate-username-wrap input::placeholder {
+  color: rgba(238,240,255,0.25); letter-spacing: 0;
+}
+#auth-gate .gate-domain-suffix {
+  padding: 0 14px 0 2px;
+  color: rgba(124,106,247,0.75);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 500;
+  white-space: nowrap; flex-shrink: 0;
+  user-select: none; pointer-events: none;
+  line-height: 44px;
+}
+#auth-gate .gate-input {
+  width: 100%; height: 44px; padding: 0 44px 0 14px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.11);
+  border-radius: 12px; color: #eef0ff;
+  font-family: 'JetBrains Mono', monospace; font-size: 14px;
+  letter-spacing: 2px; outline: none;
+  transition: border-color 200ms, background 200ms;
+}
+#auth-gate .gate-input:focus {
+  border-color: #7c6af7;
+  background: rgba(124,106,247,0.08);
+}
+#auth-gate .gate-eye {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: rgba(238,240,255,0.35); font-size: 16px; padding: 4px; line-height: 1;
+  transition: color 150ms;
+}
+#auth-gate .gate-eye:hover { color: rgba(238,240,255,0.7); }
+#auth-gate .gate-btn {
+  width: 100%; height: 44px; border-radius: 12px;
+  background: #7c6af7; border: none; color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: opacity 200ms, transform 150ms;
+  margin-top: 4px;
+}
+#auth-gate .gate-btn:hover { opacity: 0.88; }
+#auth-gate .gate-btn:active { transform: scale(0.98); }
+#auth-gate .gate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+#auth-gate .gate-error {
+  font-size: 12px; color: #f87171;
+  background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25);
+  border-radius: 8px; padding: 8px 12px; width: 100%;
+  text-align: center; margin-top: 12px;
+  display: none;
+}
+#auth-gate .gate-error.show { display: block; }
+#auth-gate .gate-spinner {
+  width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.7s linear infinite; display: inline-block; vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#app-root { display: none; }
+</style>
+<style>
+/* ═══════════════ TOKENS ═══════════════ */
+:root {
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --accent: var(--accent-custom, #7c6af7);
+  --accent-alt: color-mix(in srgb, var(--accent) 70%, white 30%);
+  --accent-glow: color-mix(in srgb, var(--accent) 28%, transparent);
+  --pink: #f472b6;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --radius-pill: 999px;
+  --radius-card: 18px;
+  --radius-sm: 8px;
+  --transition: 200ms cubic-bezier(.4,0,.2,1);
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0e1a;
+  --bg-nav: rgba(13,14,26,0.88);
+  --surface: rgba(255,255,255,0.05);
+  --surface-hover: rgba(255,255,255,0.09);
+  --surface-solid: #161824;
+  --surface2: #1a1c2e;
+  --border: rgba(255,255,255,0.09);
+  --border-solid: #252840;
+  --text-primary: #eef0ff;
+  --text-secondary: rgba(238,240,255,0.58);
+  --text-muted: rgba(238,240,255,0.32);
+  --search-bg: rgba(255,255,255,0.07);
+  --card-bg: rgba(255,255,255,0.04);
+  --ambient1: color-mix(in srgb, var(--accent) 9%, transparent);
+  --ambient2: rgba(244,114,182,0.06);
+  --shadow: 0 8px 32px rgba(0,0,0,0.5);
+  --sidebar-bg: #0f1020;
+}
+[data-theme="amoled"] {
+  color-scheme: dark;
+  --bg: #000000; --bg-nav: rgba(0,0,0,0.95);
+  --surface: rgba(255,255,255,0.04); --surface-hover: rgba(255,255,255,0.08);
+  --surface-solid: #0a0a0a; --surface2: #111111;
+  --border: rgba(255,255,255,0.07); --border-solid: #1a1a1a;
+  --text-primary: #ffffff; --text-secondary: rgba(255,255,255,0.55);
+  --text-muted: rgba(255,255,255,0.28);
+  --search-bg: rgba(255,255,255,0.06); --card-bg: rgba(255,255,255,0.03);
+  --ambient1: color-mix(in srgb, var(--accent) 6%, transparent); --ambient2: rgba(244,114,182,0.04);
+  --shadow: 0 8px 32px rgba(0,0,0,0.8); --sidebar-bg: #050505;
+}
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f0f1fb; --bg-nav: rgba(245,244,251,0.9);
+  --surface: rgba(0,0,0,0.04); --surface-hover: rgba(0,0,0,0.07);
+  --surface-solid: #e8eaf7; --surface2: #dfe1f5;
+  --border: rgba(0,0,0,0.09); --border-solid: #d0d2e8;
+  --text-primary: #13111f; --text-secondary: rgba(19,17,31,0.60);
+  --text-muted: rgba(19,17,31,0.38);
+  --search-bg: rgba(0,0,0,0.055); --card-bg: rgba(255,255,255,0.75);
+  --ambient1: color-mix(in srgb, var(--accent) 7%, transparent); --ambient2: rgba(244,114,182,0.05);
+  --shadow: 0 4px 20px rgba(0,0,0,0.12); --sidebar-bg: #e8eaf7;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font-body); background: var(--bg); color: var(--text-primary); overflow: hidden; height: 100vh; }
+
+/* ═══ AMBIENT ═══ */
+.ambient {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 65% 48% at 16% 20%, var(--ambient1), transparent),
+    radial-gradient(ellipse 55% 42% at 84% 72%, var(--ambient2), transparent);
+}
+
+/* ═══ SCROLLBARS ═══ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-solid); border-radius: 99px; }
+
+/* ═══ EDITOR CLOSE BUTTON ═══ */
+#editorCloseBtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-secondary); cursor: pointer; flex-shrink: 0;
+  transition: background 150ms, color 150ms, border-color 150ms;
+  margin-left: 6px;
+}
+#editorCloseBtn.hov { background: color-mix(in srgb,#f87171 18%,transparent); color: #f87171; border-color: color-mix(in srgb,#f87171 35%,transparent); }
+
+/* ═══ HEADER ═══ */
+header {
+  position: relative; z-index: 100;
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: nowrap; overflow: hidden;
+  padding: 0 18px;
+  background: var(--bg-nav);
+  backdrop-filter: blur(22px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border);
+}
+.logo {
+  font-family: var(--font-display); font-weight: 800; font-size: 16px; letter-spacing: -0.5px;
+  background: linear-gradient(120deg, var(--accent) 0%, var(--accent-alt) 50%, var(--pink) 100%);
+  background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shimmer 4s linear infinite; display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0;
+}
+@keyframes shimmer { from{background-position:-100% center} to{background-position:300% center} }
+.logo-icon { font-style: normal; -webkit-text-fill-color: initial; background: none; }
+
+.header-center { flex: 1; display: flex; justify-content: center; min-width: 0; }
+.header-search-wrap {
+  position: relative; width: 300px; min-width: 0; flex-shrink: 1;
+}
+.header-search-wrap input {
+  width: 100%; height: 34px; padding: 0 12px 0 34px;
+  background: var(--search-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-pill); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 13px; outline: none;
+  transition: all var(--transition);
+}
+.header-search-wrap input:focus { background: var(--surface-hover); border-color: var(--accent); }
+.header-search-wrap .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; pointer-events:none; }
+.search-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+  background: var(--bg-nav); backdrop-filter: blur(24px);
+  border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow); max-height: 340px; overflow-y: auto;
+  z-index: 300; display: none;
+}
+.search-dropdown.open { display: block; }
+.search-result-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+  cursor: pointer; transition: background var(--transition); font-size: 13px;
+}
+.search-result-item:hover { background: var(--surface-hover); }
+.search-result-icon { width: 28px; height: 28px; border-radius: 7px; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.search-result-body { flex: 1; min-width: 0; }
+.search-result-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-result-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-empty { padding: 18px; text-align: center; color: var(--text-muted); font-size: 13px; }
+
+.header-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; flex-wrap: nowrap; }
+
+/* ═══ BUTTONS ═══ */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px;
+  border-radius: var(--radius-pill); font-family: var(--font-body); font-size: 12.5px;
+  font-weight: 500; cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-secondary); transition: all var(--transition);
+  white-space: nowrap; outline: none;
+}
+.btn:hover { background: var(--surface-hover); color: var(--text-primary); border-color: var(--border); }
+.btn-accent { background: var(--accent); color: #fff; border-color: transparent; }
+.btn-accent:hover { opacity: .88; color: #fff; }
+.btn-danger { color: var(--red); border-color: color-mix(in srgb,var(--red) 25%,transparent); background: transparent; }
+.btn-danger:hover { background: color-mix(in srgb,var(--red) 10%,transparent); }
+.btn-success { color: var(--green); border-color: color-mix(in srgb,var(--green) 25%,transparent); background: transparent; }
+.btn-success:hover { background: color-mix(in srgb,var(--green) 10%,transparent); }
+.btn-sm { padding: 4px 10px; font-size: 11.5px; }
+.btn-xs { padding: 2px 7px; font-size: 11px; border-radius: 6px; }
+.btn-icon { padding: 5px; width: 30px; height: 30px; justify-content: center; border-radius: 8px; }
+
+/* ═══ THEME BUTTONS ═══ */
+.theme-btn-row { display: flex; gap: 5px; align-items: center; }
+.theme-bg-btn {
+  padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-secondary); font-family: var(--font-body);
+  font-size: 11px; cursor: pointer; transition: all var(--transition);
+}
+.theme-bg-btn:hover { color: var(--accent); border-color: var(--accent); }
+.theme-bg-btn.active { background: color-mix(in srgb,var(--accent) 15%,transparent); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+.accent-dot {
+  width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;
+  transition: transform .15s, border-color .15s; position: relative;
+}
+.accent-dot:hover { transform: scale(1.18); }
+.accent-dot.active { border-color: white; box-shadow: 0 0 0 1px rgba(0,0,0,.4); }
+
+/* ═══ LAYOUT ═══ */
+.app { display: flex; height: calc(100vh - 56px); position: relative; z-index: 1; }
+.app.resizing-h { cursor: col-resize !important; user-select: none; }
+
+/* ═══ RESIZE HANDLES ═══ */
+.resize-handle {
+  position: absolute; top: 0; bottom: 0;
+  width: 6px; cursor: col-resize; z-index: 50;
+  background: transparent; transition: background var(--transition);
+  user-select: none;
+}
+.resize-handle:hover, .resize-handle.dragging { background: var(--accent); opacity: 0.5; }
+.resize-handle-right { right: -3px; }
+.resize-handle-left  { left: -3px; }
+
+/* ═══ SIDEBAR ═══ */
+.sidebar {
+  width: 280px; min-width: 180px; max-width: 520px;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden;
+  position: relative; flex-shrink: 0;
+}
+.sidebar.expanded { width: 420px !important; }
+
+/* ═══ EXPAND VIEW TOGGLE ═══ */
+.expand-toggle {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: var(--radius-pill);
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-secondary); font-family: var(--font-body);
+  font-size: 11px; cursor: pointer; transition: all var(--transition);
+  white-space: nowrap; flex-shrink: 0;
+}
+.expand-toggle:hover { background: var(--surface-hover); color: var(--text-primary); }
+.expand-toggle.active { background: color-mix(in srgb,var(--accent) 15%,transparent); color: var(--accent); border-color: color-mix(in srgb,var(--accent) 40%,transparent); }
+.expand-toggle .toggle-track {
+  width: 26px; height: 14px; border-radius: 7px; background: var(--border-solid);
+  position: relative; transition: background var(--transition); flex-shrink: 0;
+}
+.expand-toggle.active .toggle-track { background: var(--accent); }
+.expand-toggle .toggle-thumb {
+  position: absolute; width: 10px; height: 10px; border-radius: 50%;
+  background: white; top: 2px; left: 2px; transition: left .2s;
+}
+.expand-toggle.active .toggle-thumb { left: 14px; }
+.sidebar-top { padding: 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px; }
+
+.sidebar-search-wrap { position: relative; }
+.sidebar-search-wrap input {
+  width: 100%; height: 32px; padding: 0 10px 0 30px;
+  background: var(--search-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-pill); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 12px; outline: none; transition: all var(--transition);
+}
+.sidebar-search-wrap input:focus { border-color: var(--accent); background: var(--surface-hover); }
+.sidebar-search-wrap .si { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--text-muted); pointer-events: none; }
+.sidebar-filter-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+
+/* ═══ CUSTOM SELECT ═══ */
+.custom-select-wrap {
+  flex: 1; position: relative; min-width: 80px;
+}
+.custom-select-btn {
+  width: 100%; height: 28px; padding: 0 24px 0 10px;
+  background: var(--search-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-pill); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 11px; outline: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between; gap: 4px;
+  transition: all var(--transition); user-select: none; white-space: nowrap;
+}
+.custom-select-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+.custom-select-btn.open { border-color: var(--accent); background: var(--surface-hover); }
+.custom-select-btn .cs-arrow {
+  font-size: 10px; color: var(--accent); transition: transform .2s; flex-shrink: 0;
+}
+.custom-select-btn.open .cs-arrow { transform: rotate(180deg); }
+.custom-select-btn .cs-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+
+.custom-select-dropdown {
+  position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 500;
+  background: var(--bg-nav); backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow); overflow: hidden;
+  opacity: 0; pointer-events: none; transform: translateY(-4px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.custom-select-dropdown.open {
+  opacity: 1; pointer-events: all; transform: translateY(0);
+}
+.custom-select-option {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; font-size: 11.5px; font-family: var(--font-body);
+  color: var(--text-secondary); cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.custom-select-option:hover { background: var(--surface-hover); color: var(--text-primary); }
+.custom-select-option.selected {
+  color: var(--accent); background: color-mix(in srgb,var(--accent) 10%,transparent);
+}
+.custom-select-option .cs-check {
+  font-size: 10px; width: 12px; flex-shrink: 0; opacity: 0;
+}
+.custom-select-option.selected .cs-check { opacity: 1; }
+.sidebar-filter-row2 { display: flex; gap: 5px; align-items: center; margin-top: 2px; }
+
+.tree-scroll { flex: 1; overflow-y: auto; padding: 6px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+
+/* ═══ TREE ═══ */
+.tree-item { margin-bottom: 1px; }
+.tree-row {
+  display: flex; align-items: center; gap: 5px; padding: 5px 7px;
+  border-radius: 8px; cursor: pointer; user-select: none; transition: background var(--transition);
+  position: relative;
+}
+.tree-row:hover { background: var(--surface-hover); }
+.tree-row.active { background: color-mix(in srgb,var(--accent) 15%,transparent); }
+.tree-row.drag-over { background: color-mix(in srgb,var(--accent) 20%,transparent); outline: 2px dashed var(--accent); }
+.tree-toggle { width: 13px; height: 13px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 8px; transition: transform .2s; flex-shrink: 0; }
+.tree-toggle.open { transform: rotate(90deg); }
+.tree-label-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: 5px; }
+.tree-label { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.tree-editable {
+  background: transparent; border: none; color: inherit; font-family: var(--font-body);
+  font-size: 12.5px; width: 100%; outline: none; min-width: 0;
+}
+.tree-editable:focus { background: var(--surface-hover); border-bottom: 1px solid var(--accent); padding: 0 3px; }
+.tree-badge { font-size: 10px; padding: 1px 5px; border-radius: 10px; background: var(--surface); color: var(--text-muted); flex-shrink: 0; font-family: var(--font-mono); }
+.tree-drag-handle { cursor: grab; color: var(--text-muted); font-size: 11px; flex-shrink: 0; opacity: 0; transition: opacity .15s; }
+.tree-row:hover .tree-drag-handle { opacity: 1; }
+.tree-children { padding-left: 14px; }
+.depth-0 .tree-label, .depth-0 .tree-editable { font-weight: 700; color: var(--accent); font-size: 13px; }
+.depth-1 .tree-label, .depth-1 .tree-editable { font-weight: 600; }
+.depth-2 .tree-label, .depth-2 .tree-editable { color: var(--text-secondary); }
+.depth-3 .tree-label, .depth-3 .tree-editable { color: var(--text-muted); font-size: 12px; }
+.tree-row.dragging { opacity: 0.4; }
+
+/* ═══ TREE GOTO ARROW ═══ */
+.tree-goto {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 5px; font-size: 10px;
+  color: var(--text-muted); background: transparent; border: none;
+  cursor: pointer; flex-shrink: 0; opacity: 0; transition: opacity .15s, color .15s, background .15s;
+  padding: 0; line-height: 1;
+}
+.tree-row:hover .tree-goto { opacity: 1; }
+.tree-goto:hover { color: var(--accent); background: color-mix(in srgb,var(--accent) 12%,transparent); }
+
+/* ═══ TREE ADD / REMOVE BUTTONS ═══ */
+.tree-add, .tree-remove {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 5px; font-size: 12px; font-weight: 700;
+  background: transparent; border: none;
+  cursor: pointer; flex-shrink: 0; opacity: 0; transition: opacity .15s, color .15s, background .15s;
+  padding: 0; line-height: 1;
+}
+.tree-row:hover .tree-add,
+.tree-row:hover .tree-remove { opacity: 1; }
+.tree-add { color: var(--green); }
+.tree-add:hover { background: color-mix(in srgb,var(--green) 14%,transparent); }
+.tree-remove { color: var(--red); }
+.tree-remove:hover { background: color-mix(in srgb,var(--red) 14%,transparent); }
+
+/* ═══ SIDEBAR LOAD PANEL ═══ */
+.load-panel { padding: 10px; border-bottom: 1px solid var(--border); }
+.load-panel-title { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 7px; }
+.load-panel input[type="url"], .load-panel input[type="text"] {
+  width: 100%; height: 30px; padding: 0 9px;
+  background: var(--search-bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text-primary); font-family: var(--font-body);
+  font-size: 12px; outline: none; margin-bottom: 5px; transition: border-color var(--transition);
+}
+.load-panel input:focus { border-color: var(--accent); }
+.load-row { display: flex; gap: 5px; }
+.load-row .btn { flex: 1; justify-content: center; font-size: 11px; }
+
+/* ═══ MAIN EDITOR ═══ */
+.main { flex: 1; overflow-y: auto; padding: 20px 24px; background: transparent; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+
+/* ═══ GLOBAL BROWSE LABEL ═══ */
+.browse-bar {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  padding: 12px 16px; background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-card); backdrop-filter: blur(12px); flex-wrap: wrap;
+}
+.browse-bar-label { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); flex-shrink: 0; }
+.browse-bar input {
+  background: transparent; border: none; color: var(--amber); font-family: var(--font-mono);
+  font-size: 13px; font-weight: 500; outline: none; flex: 1; min-width: 80px;
+  border-bottom: 1px dashed transparent; transition: border-color var(--transition);
+}
+.browse-bar input:focus { border-bottom-color: var(--accent); }
+.browse-bar .pill { flex-shrink: 0; white-space: nowrap; }
+
+/* Suppress browser search-cancel (×) and search decoration on type=search fields */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-results-button,
+input[type="search"]::-webkit-search-results-decoration { -webkit-appearance: none; display: none; }
+input[type="search"] { -webkit-appearance: none; appearance: none; }
+
+/* ═══ YEAR CARD ═══ */
+.year-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-card); margin-bottom: 18px; overflow: hidden;
+  backdrop-filter: blur(10px); transition: border-color var(--transition);
+}
+.year-card.drag-over { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.year-card.dragging { opacity: 0.5; }
+.card-header {
+  display: flex; align-items: center; gap: 10px; padding: 14px 18px;
+  background: var(--surface); border-bottom: 1px solid var(--border); user-select: none;
+}
+.card-header-click { flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer; min-width: 0; }
+.collapse-arrow { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
+.collapse-arrow.open { transform: rotate(90deg); }
+.year-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 6px;
+  background: color-mix(in srgb,var(--accent) 15%,transparent);
+  color: var(--accent); border: 1px solid color-mix(in srgb,var(--accent) 30%,transparent);
+  font-family: var(--font-mono); flex-shrink: 0;
+}
+.card-title-input {
+  background: transparent; border: none; color: var(--text-primary); font-family: var(--font-body);
+  font-size: 13px; font-weight: 600; outline: none; flex: 1; min-width: 0;
+  border-bottom: 1px dashed transparent; transition: border-color var(--transition);
+}
+.card-title-input:focus { border-bottom-color: var(--accent); }
+.card-meta { color: var(--text-muted); font-size: 12px; flex-shrink: 0; }
+.drag-grip { cursor: grab; color: var(--text-muted); padding: 2px 4px; font-size: 14px; flex-shrink: 0; transition: color var(--transition); }
+.drag-grip:hover { color: var(--accent); }
+.card-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.card-body { padding: 18px; }
+
+/* ═══ FIELDS ═══ */
+.bilingual-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.field-group { display: flex; flex-direction: column; gap: 4px; }
+.field-label { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; }
+.field-input {
+  height: 34px; padding: 0 11px; background: var(--search-bg); border: 1px solid var(--border);
+  border-radius: 9px; color: var(--text-primary); font-family: var(--font-body);
+  font-size: 13px; outline: none; transition: border-color var(--transition), background var(--transition);
+  width: 100%;
+}
+.field-input:focus { border-color: var(--accent); background: var(--surface-hover); }
+.field-input.mono { font-family: var(--font-mono); font-size: 12px; color: var(--amber); }
+.field-input.url-input { font-family: var(--font-mono); font-size: 11px; color: color-mix(in srgb,var(--accent) 80%,var(--text-primary)); }
+
+/* IMG FIELD */
+.img-field-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 12px; }
+.img-preview { width: 56px; height: 40px; border-radius: 9px; object-fit: cover; border: 1px solid var(--border); background: var(--surface); flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.img-preview img { width: 100%; height: 100%; object-fit: cover; }
+.img-preview-empty { color: var(--text-muted); font-size: 18px; }
+
+/* DIVIDER */
+hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+/* SECTION ROW */
+.section-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-label { font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 1.2px; text-transform: uppercase; }
+
+/* ═══ SUBJECT CARD ═══ */
+.subject-card {
+  border: 1px solid var(--border); border-radius: 14px; margin-bottom: 12px;
+  background: var(--surface); overflow: hidden;
+  transition: border-color var(--transition);
+}
+.subject-card.drag-over { border-color: var(--accent); }
+.subject-card.dragging { opacity: 0.5; }
+.subject-header {
+  display: flex; align-items: center; gap: 8px; padding: 10px 13px;
+  background: var(--surface); border-bottom: 1px solid var(--border); user-select: none;
+}
+.subject-header-click { flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer; min-width: 0; }
+.subj-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pink); flex-shrink: 0; }
+.subj-title { font-weight: 600; font-size: 13px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subject-body { padding: 13px; }
+
+/* ═══ CHAPTER CARD ═══ */
+.chapter-card {
+  border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
+  background: var(--card-bg); overflow: hidden;
+  transition: border-color var(--transition);
+}
+.chapter-card.drag-over { border-color: var(--green); }
+.chapter-card.dragging { opacity: 0.5; }
+.chapter-header {
+  display: flex; align-items: center; gap: 7px; padding: 8px 11px;
+  border-bottom: 1px solid var(--border); user-select: none;
+}
+.chapter-header-click { flex: 1; display: flex; align-items: center; gap: 7px; cursor: pointer; min-width: 0; }
+.ch-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+.ch-title { font-size: 12.5px; font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chapter-body { padding: 10px; }
+
+/* ═══ TOPICS ═══ */
+.topics-header { display: grid; grid-template-columns: 1fr 1fr 30px; gap: 6px; padding: 0 6px 5px; font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: .5px; text-transform: uppercase; }
+.topic-row {
+  display: grid; grid-template-columns: 1fr 1fr 30px; gap: 6px; align-items: center;
+  padding: 6px; border-radius: 8px; background: var(--surface); border: 1px solid var(--border);
+  margin-bottom: 4px; transition: border-color var(--transition);
+  cursor: grab;
+}
+.topic-row:hover { border-color: var(--border-solid); }
+.topic-row.drag-over { border-color: var(--accent); background: color-mix(in srgb,var(--accent) 8%,transparent); }
+.topic-row.dragging { opacity: 0.4; }
+.topic-row input { background: transparent; border: none; color: var(--text-primary); font-family: var(--font-body); font-size: 12.5px; outline: none; width: 100%; min-width: 0; }
+.topic-row input:focus { background: var(--surface-hover); border-radius: 5px; padding: 2px 5px; border: 1px solid var(--accent); }
+.topic-url-input { font-family: var(--font-mono) !important; font-size: 11px !important; color: var(--accent) !important; }
+.topic-url-input::placeholder { color: var(--text-muted) !important; }
+.topic-drag { color: var(--text-muted); font-size: 11px; cursor: grab; text-align: center; }
+
+/* ═══ RAW JSON PANEL ═══ */
+.json-panel {
+  width: 0; background: var(--sidebar-bg); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width .3s cubic-bezier(.22,1,.36,1);
+  position: relative; flex-shrink: 0; min-width: 0;
+}
+.json-panel.open { width: 400px; min-width: 260px; max-width: 720px; }
+.json-panel-header {
+  height: 50px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  font-family: var(--font-display); font-weight: 700; font-size: 13px; gap: 8px;
+}
+.json-panel textarea {
+  flex: 1; padding: 14px; border: none; background: color-mix(in srgb,var(--bg) 60%,black);
+  color: var(--green); font-family: var(--font-mono); font-size: 11.5px;
+  line-height: 1.65; resize: none; outline: none; overflow-y: auto;
+}
+.json-panel-footer { padding: 10px; border-top: 1px solid var(--border); display: flex; gap: 7px; flex-shrink: 0; }
+
+/* ═══ TOAST ═══ */
+.toast-stack { position: fixed; bottom: 20px; right: 22px; display: flex; flex-direction: column; gap: 7px; z-index: 999; }
+.toast {
+  padding: 9px 15px; border-radius: 10px; font-size: 13px; font-weight: 500;
+  backdrop-filter: blur(16px); border: 1px solid; min-width: 200px;
+  animation: toastIn .2s ease;
+}
+.toast.s { background: color-mix(in srgb,var(--green) 10%,transparent); border-color: color-mix(in srgb,var(--green) 30%,transparent); color: var(--green); }
+.toast.e { background: color-mix(in srgb,var(--red) 10%,transparent); border-color: color-mix(in srgb,var(--red) 30%,transparent); color: var(--red); }
+@keyframes toastIn { from{transform:translateX(40px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+/* ═══ ADD YEAR FOOTER ═══ */
+.add-year-btn { display: flex; align-items: center; justify-content: center; margin-bottom: 24px; }
+
+/* ═══ FILE DROP OVERLAY ═══ */
+.drop-overlay {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  opacity: 0; pointer-events: none;
+  transition: opacity 200ms cubic-bezier(.4,0,.2,1);
+}
+.drop-overlay.visible { opacity: 1; pointer-events: all; }
+.drop-zone {
+  width: min(520px, 88vw);
+  border: 2.5px dashed var(--accent);
+  border-radius: 28px;
+  padding: 56px 40px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  box-shadow: 0 0 0 8px var(--accent-glow), 0 24px 80px rgba(0,0,0,0.45);
+  transition: transform 200ms cubic-bezier(.34,1.56,.64,1), background 150ms;
+  animation: dropPulse 2s ease-in-out infinite;
+}
+@keyframes dropPulse {
+  0%,100% { box-shadow: 0 0 0 6px var(--accent-glow), 0 24px 80px rgba(0,0,0,0.45); }
+  50%      { box-shadow: 0 0 0 14px var(--accent-glow), 0 24px 80px rgba(0,0,0,0.45); }
+}
+.drop-overlay.over .drop-zone {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  transform: scale(1.03);
+  animation: none;
+  box-shadow: 0 0 0 16px var(--accent-glow), 0 32px 80px rgba(0,0,0,0.5);
+}
+.drop-icon {
+  font-size: 52px; line-height: 1;
+  filter: drop-shadow(0 4px 16px color-mix(in srgb,var(--accent) 60%,transparent));
+  animation: floatIcon 2.6s ease-in-out infinite;
+}
+@keyframes floatIcon {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.drop-title {
+  font-family: var(--font-display); font-size: 22px; font-weight: 800;
+  color: var(--text-primary); letter-spacing: -0.5px;
+}
+.drop-sub {
+  font-size: 13px; color: var(--text-secondary); text-align: center; line-height: 1.5;
+}
+.drop-badge {
+  font-family: var(--font-mono); font-size: 11px;
+  padding: 4px 12px; border-radius: 20px;
+  background: color-mix(in srgb,var(--accent) 15%,transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb,var(--accent) 30%,transparent);
+}
+.drop-dismiss {
+  font-size: 12px; color: var(--text-muted); cursor: pointer;
+  padding: 4px 12px; border-radius: 20px; transition: color var(--transition);
+}
+.drop-dismiss:hover { color: var(--text-secondary); }
+
+/* ═══ LOAD PANEL DROP HINT ═══ */
+.load-panel-drop-hint {
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+  font-size: 11px; color: var(--text-muted); margin-top: 5px;
+  padding: 5px 8px; border: 1px dashed var(--border); border-radius: 8px;
+  background: var(--surface); cursor: pointer; transition: all var(--transition);
+  user-select: none;
+}
+.load-panel-drop-hint:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb,var(--accent) 6%,transparent); }
+.load-panel-drop-hint.pulsing { border-color: var(--accent); color: var(--accent); animation: hintPulse .8s ease infinite; }
+@keyframes hintPulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* ═══ EXPORT MODAL ═══ */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 180ms ease;
+}
+.modal-backdrop.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface-solid); border: 1px solid var(--border);
+  border-radius: 20px; padding: 28px 28px 22px;
+  width: min(400px, 92vw); box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  transform: translateY(12px) scale(0.97);
+  transition: transform 200ms cubic-bezier(.34,1.56,.64,1);
+  display: flex; flex-direction: column; gap: 18px;
+}
+.modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+.modal-title {
+  font-family: var(--font-display); font-size: 16px; font-weight: 800;
+  color: var(--text-primary); display: flex; align-items: center; gap: 8px;
+}
+.modal-field { display: flex; flex-direction: column; gap: 6px; }
+.modal-field label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; }
+.modal-field input {
+  height: 38px; padding: 0 13px; background: var(--search-bg);
+  border: 1.5px solid var(--border); border-radius: 10px;
+  color: var(--text-primary); font-family: var(--font-mono); font-size: 13px;
+  outline: none; transition: border-color var(--transition), background var(--transition);
+}
+.modal-field input:focus { border-color: var(--accent); background: var(--surface-hover); }
+.modal-actions { display: flex; flex-direction: column; gap: 8px; }
+.modal-btn {
+  display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+  border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--surface); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all var(--transition); text-align: left;
+}
+.modal-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+.modal-btn.primary { background: var(--accent); border-color: transparent; color: #fff; }
+.modal-btn.primary:hover { opacity: .88; }
+.modal-btn-icon { font-size: 16px; width: 28px; text-align: center; flex-shrink: 0; }
+.modal-btn-body { flex: 1; }
+.modal-btn-title { font-weight: 700; font-size: 13px; }
+.modal-btn-sub { font-size: 11px; font-weight: 400; opacity: 0.7; margin-top: 1px; }
+.modal-cancel { font-size: 12px; color: var(--text-muted); text-align: center; cursor: pointer; padding: 4px; transition: color var(--transition); }
+.modal-cancel:hover { color: var(--text-secondary); }
+.modal-row-btns { display: flex; gap: 10px; }
+.modal-row-btns .btn { height: 38px; font-size: 13px; font-weight: 600; border-radius: 10px; }
+
+/* EMPTY */
+.empty-state { text-align: center; padding: 80px 40px; color: var(--text-muted); }
+.empty-state h2 { font-family: var(--font-display); font-size: 22px; color: var(--text-secondary); margin-bottom: 8px; }
+.empty-state p { font-size: 14px; margin-bottom: 22px; }
+.empty-state .btns { display: flex; gap: 10px; justify-content: center; }
+
+/* PILL */
+.pill { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-family: var(--font-mono); }
+.pill-a { background: color-mix(in srgb,var(--accent) 12%,transparent); color: var(--accent); border: 1px solid color-mix(in srgb,var(--accent) 25%,transparent); }
+.pill-g { background: color-mix(in srgb,var(--green) 10%,transparent); color: var(--green); border: 1px solid color-mix(in srgb,var(--green) 25%,transparent); }
+
+/* ═══ GITHUB PANEL ═══ */
+.gh-panel {
+  padding: 10px; border-bottom: 1px solid var(--border);
+}
+.gh-panel-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 7px; display: flex; align-items: center; gap: 5px; cursor: pointer; user-select: none;
+}
+.gh-panel-title .gh-toggle-arrow { font-size: 9px; transition: transform .2s; }
+.gh-panel-title.open .gh-toggle-arrow { transform: rotate(90deg); }
+.gh-panel-body { display: none; }
+.gh-panel-body.open { display: block; }
+.gh-panel input {
+  width: 100%; height: 30px; padding: 0 9px;
+  background: var(--search-bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text-primary); font-family: var(--font-body);
+  font-size: 12px; outline: none; margin-bottom: 5px; transition: border-color var(--transition);
+}
+.gh-panel input:focus { border-color: var(--accent); }
+.gh-panel input.gh-token { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); letter-spacing: .5px; }
+.gh-row { display: flex; gap: 5px; margin-bottom: 5px; }
+.gh-row .btn { flex: 1; justify-content: center; font-size: 11px; }
+.gh-status {
+  font-size: 11px; padding: 5px 8px; border-radius: 7px; margin-top: 4px;
+  display: none; align-items: center; gap: 5px;
+}
+.gh-status.show { display: flex; }
+.gh-status.ok { background: color-mix(in srgb,var(--green) 10%,transparent); color: var(--green); border: 1px solid color-mix(in srgb,var(--green) 20%,transparent); }
+.gh-status.err { background: color-mix(in srgb,var(--red) 10%,transparent); color: var(--red); border: 1px solid color-mix(in srgb,var(--red) 20%,transparent); }
+.gh-status.loading { background: color-mix(in srgb,var(--accent) 10%,transparent); color: var(--accent); border: 1px solid color-mix(in srgb,var(--accent) 20%,transparent); }
+.gh-commit-row { display: flex; gap: 5px; margin-top: 4px; }
+.gh-commit-row input { margin-bottom: 0; flex: 1; font-size: 11px; }
+.gh-commit-row .btn { white-space: nowrap; flex-shrink: 0; }
+
+/* ═══════════════ MOBILE (≤768px) ═══════════════ */
+@media (max-width: 768px) {
+  /* ── Header: search expands, logo hidden ── */
+  header { padding: 0 12px; height: auto; flex-direction: row; padding: 0 12px; height: 52px; gap: 8px; }
+  .header-center { display: flex !important; flex: 1; }
+  .header-search-wrap { width: 100%; }
+  .header-actions { display: none !important; }
+  header > .logo { display: none !important; }
+  /* Close button stays visible on mobile, compact size */
+  #editorCloseBtn { width: 30px; height: 30px; margin-left: 4px; flex-shrink: 0; }
+
+  /* ── App layout ── */
+  .app { height: calc(100vh - 52px); overflow: hidden; }
+  .main {
+    position: fixed !important;
+    top: 52px; left: 0; right: 0; bottom: 58px;
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding: 12px 10px 80px !important;
+  }
+  .sidebar {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    width: 82vw !important; min-width: unset !important; max-width: unset !important;
+    z-index: 4000;
+    transform: translateX(-100%);
+    transition: transform 0.32s cubic-bezier(.22,1,.36,1), box-shadow 0.3s;
+    box-shadow: none;
+    border-right: 1px solid var(--border);
+    /* hide pc-only parts of sidebar on mobile */
+  }
+  .sidebar.mob-open { transform: translateX(0); box-shadow: 12px 0 48px rgba(0,0,0,0.6); }
+
+  /* Backdrop: blur only sidebar area background, NOT full screen black */
+  .mob-backdrop {
+    display: block !important;
+    position: fixed; inset: 0; z-index: 3999;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(4px) brightness(0.7);
+    -webkit-backdrop-filter: blur(4px) brightness(0.7);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .mob-backdrop.visible { opacity: 1; pointer-events: all; }
+
+  /* ── Allow normal body scroll on mobile ── */
+  body { overflow: auto; height: auto; }
+  .app { height: auto; min-height: calc(100vh - 52px); overflow: visible; }
+  .main { overflow: visible; height: auto; }
+
+  /* ── Hide Load/GitHub panels from tree drawer on mobile (they live in Files tab) ── */
+  .sidebar .gh-panel { display: none; }
+
+  /* ── Resize handles hidden ── */
+  .resize-handle { display: none !important; }
+
+  /* ── JSON panel hidden on mobile (shown inside Files tab) ── */
+  .json-panel { display: none !important; }
+
+  /* ── Bilingual row: stack ── */
+  .bilingual-row { grid-template-columns: 1fr; }
+
+  /* ── Tighter cards ── */
+  .card-body { padding: 12px; }
+  .subject-body { padding: 10px; }
+  .chapter-body { padding: 8px; }
+  .card-header { padding: 11px 13px; }
+
+  /* ── Topics ── */
+  .topics-header { display: none; }
+  .topic-row {
+    display: grid !important;
+    grid-template-columns: 1fr auto !important;
+    grid-template-rows: auto auto !important;
+    gap: 5px 6px; padding: 8px;
+    cursor: default;
+  }
+  /* Title input: row 1, col 1 */
+  .topic-row input:first-child {
+    grid-column: 1; grid-row: 1;
+    background: var(--search-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    padding: 5px 8px !important;
+    font-size: 13px !important;
+    color: var(--text-primary) !important;
+  }
+  /* Delete button div: row 1, col 2 — stays right of title */
+  .topic-row > div {
+    grid-column: 2; grid-row: 1;
+    display: flex; align-items: center; gap: 3px;
+  }
+  /* URL input: row 2, spans full width */
+  .topic-url-input {
+    grid-column: 1 / -1 !important; grid-row: 2 !important;
+    display: block !important;
+    background: color-mix(in srgb, var(--accent) 6%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent) !important;
+    border-radius: 6px !important;
+    padding: 5px 8px !important;
+    font-size: 12px !important;
+    color: var(--accent) !important;
+    width: 100%;
+  }
+
+  /* ── Add year btn: room for bottom bar ── */
+  .add-year-btn { margin-bottom: 80px; }
+
+  /* ── Toasts ── */
+  .toast-stack { bottom: 66px; right: 10px; left: 10px; }
+  .toast { min-width: unset; }
+
+  /* ── Mobile bottom nav bar ── */
+  .mob-bottom-bar {
+    display: flex !important;
+    position: fixed; bottom: 0; left: 0; right: 0; height: 58px;
+    background: var(--bg-nav); backdrop-filter: blur(22px) saturate(160%);
+    border-top: 1px solid var(--border);
+    z-index: 3000; align-items: stretch; justify-content: stretch;
+  }
+  .mob-bar-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 6px 4px; cursor: pointer; border: none; border-top: 2px solid transparent;
+    background: transparent; color: var(--text-muted); font-family: var(--font-body);
+    font-size: 9.5px; font-weight: 500; transition: all var(--transition);
+  }
+  .mob-bar-btn.active { color: var(--accent); border-top-color: var(--accent); background: color-mix(in srgb,var(--accent) 6%,transparent); }
+  .mob-bar-btn .mob-bar-icon { font-size: 19px; line-height: 1; }
+
+  /* ── Mobile tab panels ── */
+  .mob-tab-panel {
+    display: none;
+    position: fixed; inset: 0; bottom: 58px; top: 52px;
+    background: var(--bg); z-index: 2500; overflow-y: auto;
+    padding: 14px 14px 20px;
+    -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+  }
+  .mob-tab-panel.active { display: block; }
+
+  /* ── Settings panel content ── */
+  .mob-settings-section { margin-bottom: 20px; }
+  .mob-settings-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 8px; display: block;
+  }
+  .mob-theme-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .mob-accent-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mob-accent-dot {
+    width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: transform .15s, border-color .15s;
+  }
+  .mob-accent-dot.active { border-color: white; box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
+
+  /* ── Files panel ── */
+  .mob-files-section { margin-bottom: 20px; }
+  .mob-files-title {
+    font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .mob-files-title .gh-toggle-arrow { font-size: 11px; transition: transform .2s; }
+  .mob-files-title.open .gh-toggle-arrow { transform: rotate(90deg); }
+  .mob-files-body { display: none; }
+  .mob-files-body.open { display: block; }
+  .mob-files-input {
+    width: 100%; height: 48px; padding: 0 14px;
+    background: var(--search-bg); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text-primary); font-family: var(--font-body);
+    font-size: 15px; outline: none; margin-bottom: 10px; transition: border-color var(--transition);
+  }
+  .mob-files-input:focus { border-color: var(--accent); }
+  .mob-files-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .mob-files-row .btn { flex: 1; justify-content: center; font-size: 14px; min-width: 90px; height: 48px; border-radius: 12px; padding: 0 16px; }
+  .mob-json-view { flex: 1; min-height: 220px; padding: 14px; border: none;
+    background: color-mix(in srgb,var(--bg) 60%,black); color: var(--green);
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.65;
+    resize: vertical; outline: none; border-radius: 12px; width: 100%; margin-bottom: 10px; }
+  .mob-json-area { flex-direction: column; }
+  .mob-json-area.open { display: flex !important; }
+  .mob-json-area > div { gap: 10px; }
+  .mob-json-area > div .btn { flex: 1; justify-content: center; font-size: 14px; height: 48px; border-radius: 12px; padding: 0 16px; }
+
+
+  /* ── Tree Drawer ── */
+  .mob-tree-drawer { display: flex !important; }
+  #mobTreeBackdrop { display: block !important; }
+  .mob-tree-drawer {
+    position: fixed; top: 0; left: 0; bottom: 58px;
+    width: 82vw; z-index: 4001;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    transform: translateX(-100%);
+    transition: transform 0.32s cubic-bezier(.22,1,.36,1), box-shadow 0.3s;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .mob-tree-drawer.open {
+    transform: translateX(0);
+    box-shadow: 12px 0 48px rgba(0,0,0,0.5);
+  }
+  #mobTreeBackdrop {
+    display: none;
+    position: fixed; inset: 0; bottom: 58px; z-index: 4000;
+    background: rgba(0,0,0,0.25);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  #mobTreeBackdrop.visible { opacity: 1; pointer-events: all; }
+  .mob-tree-drawer-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .mob-tree-content { flex: 1; overflow-y: auto; padding: 6px; }
+  /* Hide PC-only elements */
+  .pc-only { display: none !important; }
+
+  /* Edit tab = main editor, always visible when active */
+  #mobEditPanel { padding: 0; }
+}
+
+/* ── Always-hidden defaults (overridden inside media query) ── */
+.mob-backdrop  { display: none; }
+.mob-bottom-bar { display: none; }
+.mob-tab-panel { display: none; }
+.mob-tree-drawer { display: none; }
+#mobTreeBackdrop { display: none; }
+</style>
+<script>
+// ── Sync theme & accent from Eduyomi host ──
+(function() {
+  const theme  = localStorage.getItem('ej-synced-theme') || localStorage.getItem('eduyomi-theme') || 'dark';
+  const accent = localStorage.getItem('ej-synced-accent') || localStorage.getItem('eduyomi-accent') || '#7c6af7';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.style.setProperty('--accent-custom', accent);
+})();
+</script>
+</head>
+<body>
+
+<!-- ═══ AUTH GATE ═══ -->
+<div id="auth-gate">
+  <div class="gate-card">
+    <div class="gate-logo">🎓 Eduyomi</div>
+    <div class="gate-subtitle">Enter your password to access the editor</div>
+    <div class="gate-label">Username</div>
+    <div class="gate-username-wrap">
+      <input id="gate-user" type="text" placeholder="yourname"
+        autocomplete="username" autocorrect="off" autocapitalize="none" spellcheck="false"
+        onkeydown="if(event.key==='Enter')document.getElementById('gate-pw').focus()">
+      <span class="gate-domain-suffix">@eduyomi.app</span>
+    </div>
+    <div class="gate-label">Password</div>
+    <div class="gate-input-wrap">
+      <input id="gate-pw" class="gate-input" type="password" placeholder="••••••••"
+        autocomplete="current-password" onkeydown="if(event.key==='Enter')gateLogin()">
+      <button class="gate-eye" onclick="gateToggleEye()" title="Show/hide">👁</button>
+    </div>
+    <button class="gate-btn" id="gate-submit-btn" onclick="gateLogin()">Unlock</button>
+    <div class="gate-error" id="gate-error">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- ═══ APP ROOT ═══ -->
+<div id="app-root">
+<div class="ambient"></div>
+<div class="mob-backdrop" id="mobBackdrop" onclick="mobCloseSidebar()"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Editor</div>
+
+  <div class="header-center">
+    <div class="header-search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="headerSearch" placeholder="Search topics, chapters, subjects…" oninput="onHeaderSearch()" onfocus="openHeaderSearch()" onblur="closeHeaderSearchDelay()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <div class="search-dropdown" id="headerSearchDrop"></div>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <!-- Theme BG -->
+    <div class="theme-btn-row">
+      <button class="theme-bg-btn" onclick="setTheme('dark')" data-t="dark">Dark</button>
+      <button class="theme-bg-btn" onclick="setTheme('amoled')" data-t="amoled">AMOLED</button>
+      <button class="theme-bg-btn" onclick="setTheme('light')" data-t="light">Light</button>
+    </div>
+    <!-- Accent dots -->
+    <div style="display:flex;gap:5px;margin:0 4px;">
+      <div class="accent-dot" style="background:#7c6af7" data-c="#7c6af7" onclick="setAccent(this)" title="Violet"></div>
+      <div class="accent-dot" style="background:#3b82f6" data-c="#3b82f6" onclick="setAccent(this)" title="Blue"></div>
+      <div class="accent-dot" style="background:#10b981" data-c="#10b981" onclick="setAccent(this)" title="Emerald"></div>
+      <div class="accent-dot" style="background:#f59e0b" data-c="#f59e0b" onclick="setAccent(this)" title="Amber"></div>
+      <div class="accent-dot" style="background:#ec4899" data-c="#ec4899" onclick="setAccent(this)" title="Pink"></div>
+    </div>
+    <button class="btn" onclick="toggleJsonPanel()">{ } JSON</button>
+  </div>
+  <!-- Close button: always visible, outside header-actions so it shows on mobile too -->
+  <button id="editorCloseBtn" onclick="window.parent?.closeSourceEditor?.()" title="Close Editor" onmouseover="this.classList.add('hov')" onmouseout="this.classList.remove('hov')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</header>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="resize-handle resize-handle-right" id="sidebarResizeHandle"></div>
+    <!-- GitHub Integration -->
+    <div class="gh-panel">
+      <div class="gh-panel-title" id="ghPanelTitle" onclick="toggleGhPanel()">
+        <span class="gh-toggle-arrow">▶</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;opacity:.75"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span>GitHub Sync</span>
+      </div>
+      <div class="gh-panel-body" id="ghPanelBody">
+        <!-- URL and token auto-filled from Supabase login — no manual input needed -->
+        <input type="hidden" id="ghFileUrl">
+        <input type="hidden" id="ghToken" data-masked="1">
+        <div class="gh-row">
+          <button class="btn btn-sm" onclick="ghFetch()">⬇ Pull</button>
+          <button class="btn btn-sm btn-success" onclick="ghPushModal()">⬆ Push</button>
+        </div>
+        <div class="gh-commit-row" id="ghCommitRow" style="display:none">
+          <textarea id="ghCommitMsg" placeholder="Commit message…" rows="3" readonly style="resize:none;min-height:38px;max-height:140px;font-family:var(--font-mono);font-size:11.5px;line-height:1.5;padding:6px 9px;background:var(--search-bg);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);outline:none;width:100%;box-sizing:border-box;cursor:default;opacity:0.85;"></textarea>
+          <button class="btn btn-sm btn-accent" onclick="ghPush()">✓ Commit</button>
+          <button class="btn btn-sm btn-danger" onclick="ghCancelCommit()">✕</button>
+        </div>
+        <div class="gh-status" id="ghStatus"></div>
+      </div>
+    </div>
+
+    <!-- Sidebar search + filter -->
+    <div class="sidebar-top">
+      <div class="sidebar-search-wrap">
+        <span class="si">🔍</span>
+        <input type="search" id="sidebarSearch" placeholder="Filter tree…" oninput="filterTree()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="sidebar-filter-row">
+        <div class="custom-select-wrap" id="sortSelectWrap">
+          <button class="custom-select-btn" id="sortSelectBtn" onclick="toggleCustomSelect()" aria-haspopup="listbox">
+            <span class="cs-label" id="sortSelectLabel">Original order</span>
+            <span class="cs-arrow">▾</span>
+          </button>
+          <div class="custom-select-dropdown" id="sortSelectDrop" role="listbox">
+            <div class="custom-select-option selected" data-value="natural" onclick="pickSortOption(this)">
+              <span class="cs-check">✓</span>Original order
+            </div>
+            <div class="custom-select-option" data-value="asc" onclick="pickSortOption(this)">
+              <span class="cs-check">✓</span>A → Z (Year)
+            </div>
+            <div class="custom-select-option" data-value="desc" onclick="pickSortOption(this)">
+              <span class="cs-check">✓</span>Z → A (Year)
+            </div>
+            <div class="custom-select-option" data-value="subj-asc" onclick="pickSortOption(this)">
+              <span class="cs-check">✓</span>Subjects A→Z
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-filter-row2">
+        <button class="expand-toggle" id="sidebarExpandToggle" onclick="toggleExpandAll(this)" title="Expand/collapse all">
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span>Expand All</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tree -->
+    <div class="tree-scroll" id="treeScroll"></div>
+  </div>
+
+  <!-- MAIN EDITOR -->
+  <div class="main" id="mainEditor"></div>
+
+  <!-- JSON PANEL -->
+  <div class="json-panel" id="jsonPanel">
+    <div class="resize-handle resize-handle-left" id="jsonResizeHandle"></div>
+    <div class="json-panel-header">
+      <span>Raw JSON</span>
+      <button class="expand-toggle" id="jsonExpandToggle" onclick="toggleJsonExpand(this)" title="Expand JSON panel">
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span class="json-expand-label">Expand</span>
+      </button>
+      <button class="btn btn-xs" onclick="closeJsonPanel()">✕</button>
+    </div>
+    <textarea id="rawJson" spellcheck="false"></textarea>
+    <div class="json-panel-footer">
+      <button class="btn btn-success" onclick="applyRaw()" style="flex:1">✓ Apply</button>
+      <button class="btn btn-xs" onclick="copyJSON()">⎘ Copy</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-backdrop" id="exportModal">
+  <div class="modal">
+    <div class="modal-title">⬆ Export JSON</div>
+    <div class="modal-field">
+      <label>File Name</label>
+      <input type="text" id="exportFilename" value="curriculum" placeholder="filename" spellcheck="false"
+        onkeydown="if(event.key==='Enter')doExport()">
+    </div>
+    <div class="modal-row-btns">
+      <button class="btn" style="flex:1;justify-content:center;" onclick="closeExportModal()">✕ Cancel</button>
+      <button class="btn btn-accent" style="flex:1;justify-content:center;" onclick="doExport()">⬇ Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- FILE DROP OVERLAY -->
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title">Drop JSON File</div>
+    <div class="drop-sub">Release to load your curriculum JSON<br>anywhere on the screen</div>
+    <div class="drop-badge">.json</div>
+  </div>
+  <div class="drop-dismiss" onclick="hideDropOverlay()">✕ Cancel</div>
+</div>
+
+<script>
+// ─────────────────────── STATE ───────────────────────
+let data = {};
+let lastCommittedData = null; // deep snapshot of data after last pull/push
+let treeOpen = {};    // key → bool (open)
+let dragSrc = null;   // {type, yi, si, ci, ti}
+let editorExpanded = false; // tracks editor expand view state
+
+
+// ─────────────────────── THEME ───────────────────────
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  // Write to all shared keys so both pages stay in sync
+  localStorage.setItem('ej-theme', t);
+  localStorage.setItem('ej-synced-theme', t);
+  localStorage.setItem('eduyomi-theme', t);
+  document.querySelectorAll('.theme-bg-btn').forEach(b => b.classList.toggle('active', b.dataset.t === t));
+}
+function setAccent(el) {
+  const c = el.dataset.c;
+  document.documentElement.style.setProperty('--accent-custom', c);
+  // Write to all shared keys so both pages stay in sync
+  localStorage.setItem('ej-accent', c);
+  localStorage.setItem('ej-synced-accent', c);
+  localStorage.setItem('eduyomi-accent', c);
+  document.querySelectorAll('.accent-dot').forEach(d => d.classList.toggle('active', d.dataset.c === c));
+}
+function initTheme() {
+  // Read from shared keys in priority order
+  const t = localStorage.getItem('eduyomi-theme') || localStorage.getItem('ej-synced-theme') || localStorage.getItem('ej-theme') || 'dark';
+  const a = localStorage.getItem('eduyomi-accent') || localStorage.getItem('ej-synced-accent') || localStorage.getItem('ej-accent') || '#7c6af7';
+  setTheme(t);
+  document.documentElement.style.setProperty('--accent-custom', a);
+  document.querySelectorAll('.accent-dot').forEach(d => d.classList.toggle('active', d.dataset.c === a));
+}
+initTheme();
+
+// ─────────────────────── LOAD ───────────────────────
+function startFresh() { data = {browse_label:'', years:[{year_title:'New Year',subjects:[]}]}; loadedFileName=''; lastExportedName=''; render(); refreshJsonPanel(); toast('Fresh start — Year 1 added','s'); }
+
+function loadFromURL() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return toast('Enter a URL','e');
+  fetch(url).then(r => r.json()).then(d => {
+    data=d;
+    // Try to extract file name from URL
+    try { const parts = new URL(url).pathname.split('/'); const last = parts[parts.length-1]; if (last.endsWith('.json')) { loadedFileName = last.replace(/\.json$/i,''); lastExportedName=''; } } catch {}
+    render(); toast('Loaded from URL','s');
+  }).catch(() => toast('Fetch failed','e'));
+}
+function loadFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  loadedFileName = f.name.replace(/\.json$/i, '');
+  lastExportedName = '';
+  const r = new FileReader();
+  r.onload = ev => { try { data = JSON.parse(ev.target.result); closeJsonPanel(); render(); toast('File loaded','s'); } catch { toast('Invalid JSON','e'); } };
+  r.readAsText(f);
+}
+function saveLocal() {
+  // Save back to the opened file (triggers download with original filename)
+  const name = loadedFileName || lastExportedName || 'curriculum';
+  const b = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b);
+  a.download = name + '.json'; a.click();
+  lastExportedName = name;
+  toast(`Saved as "${name}.json"`, 's');
+}
+function loadLocal() {
+  const s = localStorage.getItem('ej-data');
+  if (!s) return toast('Nothing saved','e');
+  data = JSON.parse(s); render(); toast('Restored','s');
+}
+let lastExportedName = '';
+let loadedFileName = ''; // tracks the name of the file that was loaded
+
+function exportJSON() {
+  const input = document.getElementById('exportFilename');
+  if (input) input.value = lastExportedName || loadedFileName || 'curriculum';
+  document.getElementById('exportModal').classList.add('open');
+  setTimeout(() => input && input.select(), 80);
+}
+function closeExportModal() {
+  document.getElementById('exportModal').classList.remove('open');
+}
+function doExport() {
+  const input = document.getElementById('exportFilename');
+  let name = (input ? input.value.trim() : '') || loadedFileName || 'curriculum';
+  name = name.replace(/\.json$/i, '');
+  lastExportedName = name;
+  const b = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b);
+  a.download = name + '.json'; a.click();
+  closeExportModal();
+  toast(`Exported as "${name}.json"`, 's');
+}
+// Close modal on backdrop click
+document.getElementById('exportModal').addEventListener('click', function(e) {
+  if (e.target === this) closeExportModal();
+});
+// Close on Escape (merged with existing keydown listener in initFileDrop)
+function copyJSON() { navigator.clipboard.writeText(JSON.stringify(data,null,2)); toast('Copied','s'); }
+
+// ─────────────────────── JSON PANEL ───────────────────────
+let jsonPanelDirty = false; // true = user is actively typing in textarea
+
+function isJsonPanelOpen() {
+  return document.getElementById('jsonPanel').classList.contains('open');
+}
+function openJsonPanel() {
+  const panel = document.getElementById('jsonPanel');
+  const ta = document.getElementById('rawJson');
+  panel.classList.add('open');
+  jsonPanelDirty = false;
+  ta.value = JSON.stringify(data, null, 2);
+}
+function closeJsonPanel() {
+  const panel = document.getElementById('jsonPanel');
+  const ta = document.getElementById('rawJson');
+  panel.classList.remove('open');
+  jsonPanelDirty = false;
+  if (ta) ta.blur(); // force release focus so panel never gets stuck
+  // Reset expand toggle
+  const tog = document.getElementById('jsonExpandToggle');
+  if (tog) {
+    tog.classList.remove('active');
+    const lbl = tog.querySelector('.json-expand-label');
+    if (lbl) lbl.textContent = 'Expand';
+  }
+}
+function refreshJsonPanel() {
+  if (!isJsonPanelOpen()) {
+    // Still update mobile JSON view
+    const mta = document.getElementById('mobRawJson');
+    if (mta) mta.value = JSON.stringify(data, null, 2);
+    return;
+  }
+  const ta = document.getElementById('rawJson');
+  if (!ta) return;
+  if (jsonPanelDirty) return; // user is actively editing, don't overwrite
+  const scroll = ta.scrollTop;
+  ta.value = JSON.stringify(data, null, 2);
+  ta.scrollTop = scroll;
+  // Also sync mobile JSON view
+  const mta = document.getElementById('mobRawJson');
+  if (mta) mta.value = JSON.stringify(data, null, 2);
+}
+function toggleJsonPanel() {
+  if (isJsonPanelOpen()) closeJsonPanel(); else openJsonPanel();
+}
+function applyRaw() {
+  try {
+    data = JSON.parse(document.getElementById('rawJson').value);
+    jsonPanelDirty = false;
+    render();
+    closeJsonPanel();
+    toast('Applied','s');
+  } catch { toast('Invalid JSON','e'); }
+}
+
+// Wire up dirty flag on the textarea
+document.addEventListener('DOMContentLoaded', () => {
+  const ta = document.getElementById('rawJson');
+  if (ta) {
+    ta.addEventListener('input', () => { jsonPanelDirty = true; });
+    ta.addEventListener('blur',  () => {
+      // When user blurs without applying, revert dirty state so live updates resume
+      // but only if still valid JSON (don't discard their edits silently)
+      try { JSON.parse(ta.value); jsonPanelDirty = false; refreshJsonPanel(); } catch {}
+    });
+  }
+});
+
+// ─── Go-to: scroll GUI + highlight JSON path ────────────────────────────────
+function gotoItem(yi, si, ci, ti) {
+  // 1. Scroll main editor to the element
+  let guiId;
+  if (ti !== undefined)      guiId = `tp-${yi}-${si}-${ci}-${ti}`;
+  else if (ci !== undefined) guiId = `ch-card-${yi}-${si}-${ci}`;
+  else if (si !== undefined) guiId = `sub-${yi}-${si}`;
+  else                       guiId = `yr-${yi}`;
+
+  // Expand collapsed ancestors in main editor
+  if (si !== undefined && colState.subjects && colState.subjects[`${yi}-${si}`]) toggleCollapse('subjects',`${yi}-${si}`);
+  if (ci !== undefined && colState.chapters && colState.chapters[`${yi}-${si}-${ci}`]) toggleCollapse('chapters',`${yi}-${si}-${ci}`);
+  if (colState.years && colState.years[yi]) toggleCollapse('years', yi);
+
+  setTimeout(() => {
+    const el = document.getElementById(guiId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.transition = 'box-shadow .2s';
+      el.style.boxShadow = '0 0 0 2px var(--accent)';
+      setTimeout(() => el.style.boxShadow = '', 1600);
+    }
+  }, 80);
+
+  // 2. Open JSON panel and scroll to the matching key
+  if (!isJsonPanelOpen()) openJsonPanel();
+  jsonPanelDirty = false;
+  const ta = document.getElementById('rawJson');
+  const json = JSON.stringify(data, null, 2);
+  ta.value = json;
+
+  // Build a search string to locate the right spot in JSON
+  let searchStr;
+  if (ti !== undefined) {
+    // Find the ti-th topic inside the right chapter - search for its title
+    const topicTitle = data.years?.[yi]?.subjects?.[si]?.chapters?.[ci]?.topics?.[ti]?.title || '';
+    searchStr = topicTitle ? `"title": "${topicTitle}"` : null;
+  } else if (ci !== undefined) {
+    const chTitle = data.years?.[yi]?.subjects?.[si]?.chapters?.[ci]?.chapter_title || '';
+    searchStr = chTitle ? `"chapter_title": "${chTitle}"` : null;
+  } else if (si !== undefined) {
+    const subName = data.years?.[yi]?.subjects?.[si]?.subject_name?.en || '';
+    searchStr = subName ? `"en": "${subName}"` : null;
+  } else {
+    const yearTitle = data.years?.[yi]?.year_title || '';
+    searchStr = yearTitle ? `"year_title": "${yearTitle}"` : null;
+  }
+
+  if (searchStr) {
+    const idx = json.indexOf(searchStr);
+    if (idx !== -1) {
+      // Calculate line number
+      const before = json.substring(0, idx);
+      const line = before.split('\n').length - 1;
+      // Scroll textarea to that line
+      setTimeout(() => {
+        const lines = ta.value.split('\n');
+        let charPos = 0;
+        for (let i = 0; i < line; i++) charPos += lines[i].length + 1;
+        ta.focus();
+        ta.setSelectionRange(charPos, charPos + (lines[line]||'').length);
+        // Scroll to selection
+        const lineHeight = parseFloat(getComputedStyle(ta).lineHeight) || 18;
+        ta.scrollTop = Math.max(0, (line - 4) * lineHeight);
+        // Highlight briefly then release focus cleanly
+        setTimeout(() => { ta.blur(); jsonPanelDirty = false; }, 800);
+      }, 120);
+    }
+  }
+}
+
+// ─────────────────────── CUSTOM SELECT ───────────────────────
+let sortSelectValue = 'natural';
+
+function toggleCustomSelect() {
+  const btn = document.getElementById('sortSelectBtn');
+  const drop = document.getElementById('sortSelectDrop');
+  const isOpen = drop.classList.contains('open');
+  if (isOpen) { closeCustomSelect(); } else { btn.classList.add('open'); drop.classList.add('open'); }
+}
+function closeCustomSelect() {
+  document.getElementById('sortSelectBtn').classList.remove('open');
+  document.getElementById('sortSelectDrop').classList.remove('open');
+}
+function pickSortOption(el) {
+  const val = el.dataset.value;
+  const label = el.textContent.trim();
+  sortSelectValue = val;
+  document.getElementById('sortSelectLabel').textContent = label;
+  document.querySelectorAll('#sortSelectDrop .custom-select-option').forEach(o => o.classList.toggle('selected', o === el));
+  closeCustomSelect();
+  applySortAndRender();
+}
+// Close on outside click
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('sortSelectWrap');
+  if (wrap && !wrap.contains(e.target)) closeCustomSelect();
+});
+
+// ─────────────────────── SORT ───────────────────────
+function getSortedYears() {
+  const years = (data.years || []);
+  const sort = sortSelectValue;
+  const idx = years.map((y,i)=>i);
+  if (sort === 'asc') return [...idx].sort((a,b)=>(years[a].year_title||'').localeCompare(years[b].year_title||''));
+  if (sort === 'desc') return [...idx].sort((a,b)=>(years[b].year_title||'').localeCompare(years[a].year_title||''));
+  return idx;
+}
+function applySortAndRender() { renderTree(); renderMain(); }
+
+// ─────────────────────── TREE ───────────────────────
+function renderTree() {
+  const scroll = document.getElementById('treeScroll');
+  const q = document.getElementById('sidebarSearch').value.toLowerCase().trim();
+  const years = data.years || [];
+  const sortedYi = getSortedYears();
+
+  if (!years.length) { scroll.innerHTML = `<div style="color:var(--text-muted);font-size:12px;padding:10px;">No data loaded</div>`; return; }
+
+  let html = '';
+  sortedYi.forEach(yi => {
+    const year = years[yi];
+    const yKey = `y${yi}`;
+    if (treeOpen[yKey] === undefined) treeOpen[yKey] = false;
+    const yOpen = treeOpen[yKey];
+
+    // Filter check
+    const yearMatch = !q || (year.year_title||'').toLowerCase().includes(q);
+    let subHtml = '';
+    let anySubMatch = false;
+
+    (year.subjects||[]).forEach((sub, si) => {
+      const sKey = `y${yi}s${si}`;
+      if (treeOpen[sKey] === undefined) treeOpen[sKey] = false;
+      const sOpen = treeOpen[sKey];
+      const subName = sub.subject_name?.en || '';
+      const subMatch = !q || subName.toLowerCase().includes(q) || yearMatch;
+
+      let chHtml = '';
+      let anyChMatch = false;
+      (sub.chapters||[]).forEach((ch, ci) => {
+        const cKey = `y${yi}s${si}c${ci}`;
+        if (treeOpen[cKey] === undefined) treeOpen[cKey] = false;
+        const cOpen = treeOpen[cKey];
+        const chTitle = ch.chapter_title||'';
+        const chMatch = !q || chTitle.toLowerCase().includes(q) || subMatch;
+
+        let topHtml = '';
+        let anyTopMatch = false;
+        (ch.topics||[]).forEach((t, ti) => {
+          const topMatch = !q || (t.title||'').toLowerCase().includes(q) || chMatch;
+          if (topMatch) { anyTopMatch = true; }
+          if (topMatch || !q)
+            topHtml += `<div class="tree-item depth-3" draggable="true" ondragstart="treeDragStart(event,'topic',${yi},${si},${ci},${ti})" ondragover="treeDragOver(event,this)" ondrop="treeDrop(event,'topic',${yi},${si},${ci},${ti})" ondragleave="treeDragLeave(this)">
+              <div class="tree-row" onclick="scrollToId('tp-${yi}-${si}-${ci}-${ti}')">
+                <span style="width:13px"></span><span style="width:13px"></span>
+                <span class="tree-drag-handle" title="Drag">⠿</span>
+                <span class="tree-label-wrap">
+                  <input class="tree-editable" value="${esc(t.title||'')}" placeholder="Topic title" onclick="event.stopPropagation()" onchange="setTopicTitle(${yi},${si},${ci},${ti},this.value)" title="Edit topic title">
+                  ${t.url?'<span class="tree-badge">▶</span>':''}
+                </span>
+                <button class="tree-remove" onclick="event.stopPropagation();removeTopic(${yi},${si},${ci},${ti})" title="Remove topic">−</button>
+                <button class="tree-goto" onclick="event.stopPropagation();gotoItem(${yi},${si},${ci},${ti})" title="Go to in editor & JSON">→</button>
+              </div>
+            </div>`;
+        });
+        if (chMatch || anyTopMatch || !q) { anyChMatch = true; }
+        if (chMatch || anyTopMatch || !q)
+          chHtml += `<div class="tree-item depth-2" draggable="true" ondragstart="treeDragStart(event,'chapter',${yi},${si},${ci})" ondragover="treeDragOver(event,this)" ondrop="treeDrop(event,'chapter',${yi},${si},${ci})" ondragleave="treeDragLeave(this)">
+            <div class="tree-row" onclick="scrollToId('ch-${yi}-${si}-${ci}')">
+              <span style="width:13px"></span>
+              <span class="tree-toggle ${cOpen?'open':''}" onclick="event.stopPropagation();toggleTree('${cKey}')">▶</span>
+              <span class="tree-drag-handle">⠿</span>
+              <span class="tree-label-wrap">
+                <input class="tree-editable" value="${esc(ch.chapter_title||'')}" onclick="event.stopPropagation()" onchange="setChTitle(${yi},${si},${ci},this.value)" title="Edit chapter title">
+                <span class="tree-badge">${(ch.topics||[]).length}</span>
+              </span>
+              <button class="tree-add" onclick="event.stopPropagation();addTopic(${yi},${si},${ci})" title="Add topic">+</button>
+              <button class="tree-remove" onclick="event.stopPropagation();removeCh(${yi},${si},${ci})" title="Remove chapter">−</button>
+              <button class="tree-goto" onclick="event.stopPropagation();gotoItem(${yi},${si},${ci})" title="Go to in editor & JSON">→</button>
+            </div>
+            ${cOpen ? `<div class="tree-children" id="tc-${cKey}">${topHtml}</div>` : `<div class="tree-children" id="tc-${cKey}" style="display:none">${topHtml}</div>`}
+          </div>`;
+      });
+
+      if (subMatch || anyChMatch || !q) { anySubMatch = true; }
+      if (subMatch || anyChMatch || !q)
+        subHtml += `<div class="tree-item depth-1" draggable="true" ondragstart="treeDragStart(event,'subject',${yi},${si})" ondragover="treeDragOver(event,this)" ondrop="treeDrop(event,'subject',${yi},${si})" ondragleave="treeDragLeave(this)">
+          <div class="tree-row" onclick="scrollToId('sub-${yi}-${si}')">
+            <span style="width:13px"></span>
+            <span class="tree-toggle ${sOpen?'open':''}" onclick="event.stopPropagation();toggleTree('${sKey}')">▶</span>
+            <span class="tree-drag-handle">⠿</span>
+            <span class="tree-label-wrap">
+              <input class="tree-editable" value="${esc(subName)}" onclick="event.stopPropagation()" onchange="setSubName(${yi},${si},this.value)" title="Edit subject name">
+              <span class="tree-badge">${(sub.chapters||[]).length}c</span>
+            </span>
+            <button class="tree-add" onclick="event.stopPropagation();addChapter(${yi},${si})" title="Add chapter">+</button>
+            <button class="tree-remove" onclick="event.stopPropagation();removeSub(${yi},${si})" title="Remove subject">−</button>
+            <button class="tree-goto" onclick="event.stopPropagation();gotoItem(${yi},${si})" title="Go to in editor & JSON">→</button>
+          </div>
+          ${sOpen ? `<div class="tree-children" id="tc-${sKey}">${chHtml}</div>` : `<div class="tree-children" id="tc-${sKey}" style="display:none">${chHtml}</div>`}
+        </div>`;
+    });
+
+    if (yearMatch || anySubMatch || !q)
+      html += `<div class="tree-item depth-0" draggable="true" ondragstart="treeDragStart(event,'year',${yi})" ondragover="treeDragOver(event,this)" ondrop="treeDrop(event,'year',${yi})" ondragleave="treeDragLeave(this)">
+        <div class="tree-row" onclick="scrollToId('yr-${yi}')">
+          <span class="tree-toggle ${yOpen?'open':''}" onclick="event.stopPropagation();toggleTree('${yKey}')">▶</span>
+          <span style="width:13px"></span>
+          <span class="tree-drag-handle">⠿</span>
+          <span class="tree-label-wrap">
+            <input class="tree-editable" value="${esc(year.year_title||'')}" onclick="event.stopPropagation()" onchange="setYearTitle(${yi},this.value)" title="Edit year title">
+            <span class="tree-badge">${(year.subjects||[]).length}s</span>
+          </span>
+          <button class="tree-add" onclick="event.stopPropagation();addSubject(${yi})" title="Add subject">+</button>
+          <button class="tree-remove" onclick="event.stopPropagation();removeYear(${yi})" title="Remove year">−</button>
+          <button class="tree-goto" onclick="event.stopPropagation();gotoItem(${yi})" title="Go to in editor & JSON">→</button>
+        </div>
+        ${yOpen ? `<div class="tree-children" id="tc-${yKey}">${subHtml}</div>` : `<div class="tree-children" id="tc-${yKey}" style="display:none">${subHtml}</div>`}
+      </div>`;
+  });
+
+  scroll.innerHTML = html;
+  // Sync mobile tree drawer if open
+  if (isMobile && isMobile()) {
+    const drawer = document.getElementById('mobTreeDrawer');
+    if (drawer && drawer.classList.contains('open')) {
+      const content = document.getElementById('mobTreeContent');
+      if (content) content.innerHTML = html;
+    }
+  }
+}
+
+function toggleTree(key) {
+  treeOpen[key] = !treeOpen[key];
+  const ch = document.getElementById(`tc-${key}`);
+  if (ch) ch.style.display = treeOpen[key] ? '' : 'none';
+  // update arrow
+  renderTree(); // simple re-render for arrows
+}
+
+function collapseAll() { Object.keys(treeOpen).forEach(k => treeOpen[k] = false); renderTree(); }
+function expandAll() { Object.keys(treeOpen).forEach(k => treeOpen[k] = true); renderTree(); }
+function filterTree() { renderTree(); }
+
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) { el.scrollIntoView({ behavior:'smooth', block:'start' }); el.style.boxShadow = '0 0 0 2px var(--accent)'; setTimeout(()=>el.style.boxShadow='',1500); }
+}
+
+// ─────────────────────── TREE DRAG ───────────────────────
+function treeDragStart(e, type, yi, si, ci, ti) {
+  e.stopPropagation();
+  dragSrc = {type, yi, si, ci, ti};
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', JSON.stringify({type,yi,si,ci,ti}));
+  setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
+}
+function treeDragOver(e, el) {
+  e.preventDefault(); e.stopPropagation();
+  if (!dragSrc) return;
+  e.dataTransfer.dropEffect = 'move';
+  const row = el.querySelector(':scope > .tree-row');
+  if (row) row.classList.add('drag-over');
+}
+function treeDragLeave(el) {
+  const row = el.querySelector(':scope > .tree-row');
+  if (row) row.classList.remove('drag-over');
+}
+function treeDrop(e, type, yi, si, ci, ti) {
+  e.preventDefault(); e.stopPropagation();
+  const el = e.currentTarget;
+  const row = el.querySelector(':scope > .tree-row');
+  if (row) row.classList.remove('drag-over');
+  if (!dragSrc || dragSrc.type !== type) { dragSrc = null; return; }
+  const s = dragSrc; dragSrc = null;
+  if (type === 'year' && s.yi !== yi) {
+    moveInArray(data.years, s.yi, yi); render(); refreshJsonPanel();
+  } else if (type === 'subject' && s.yi === yi && s.si !== si) {
+    moveInArray(data.years[yi].subjects, s.si, si); render(); refreshJsonPanel();
+  } else if (type === 'chapter' && s.yi === yi && s.si === si && s.ci !== ci) {
+    moveInArray(data.years[yi].subjects[si].chapters, s.ci, ci); render(); refreshJsonPanel();
+  } else if (type === 'topic' && s.yi === yi && s.si === si && s.ci === ci && s.ti !== ti) {
+    moveInArray(data.years[yi].subjects[si].chapters[ci].topics, s.ti, ti); render(); refreshJsonPanel();
+  }
+}
+function moveInArray(arr, from, to) { const item = arr.splice(from, 1)[0]; arr.splice(to, 0, item); }
+
+// ─────────────────────── REALTIME SET ───────────────────────
+// Immediate update without full re-render
+function setYearTitle(yi, val) {
+  data.years[yi].year_title = val;
+  // Update main editor title input
+  const el = document.getElementById(`yt-${yi}`);
+  if (el && el !== document.activeElement) el.value = val;
+  // Update tree (already editing there)
+  const badge = document.querySelector(`#yr-${yi} .card-meta`);
+  // Sync badge in header
+  const hTitle = document.getElementById(`yh-${yi}`);
+  if (hTitle && hTitle !== document.activeElement) hTitle.textContent = val;
+  refreshJsonPanel();
+}
+function setSubName(yi, si, val) {
+  if (!data.years[yi].subjects[si].subject_name) data.years[yi].subjects[si].subject_name = {};
+  data.years[yi].subjects[si].subject_name.en = val;
+  // Sync main editor
+  const el = document.getElementById(`sn-en-${yi}-${si}`);
+  if (el && el !== document.activeElement) el.value = val;
+  const hEl = document.getElementById(`sh-${yi}-${si}`);
+  if (hEl && hEl !== document.activeElement) hEl.textContent = val;
+  refreshJsonPanel();
+}
+function setChTitle(yi, si, ci, val) {
+  data.years[yi].subjects[si].chapters[ci].chapter_title = val;
+  const el = document.getElementById(`ct-${yi}-${si}-${ci}`);
+  if (el && el !== document.activeElement) el.value = val;
+  const hEl = document.getElementById(`ch-${yi}-${si}-${ci}`);
+  if (hEl && hEl !== document.activeElement) hEl.textContent = val;
+  refreshJsonPanel();
+}
+function setTopicTitle(yi, si, ci, ti, val) {
+  data.years[yi].subjects[si].chapters[ci].topics[ti].title = val;
+  // Sync the topic input in main editor
+  const el = document.querySelector(`#tp-${yi}-${si}-${ci}-${ti} input:first-child`);
+  if (el && el !== document.activeElement) el.value = val;
+  refreshJsonPanel();
+}
+
+// ─────────────────────── MAIN RENDER ───────────────────────
+function render() { renderTree(); renderMain(); }
+
+function renderMain() {
+  const editor = document.getElementById('mainEditor');
+  const years = data.years || [];
+  if (!years.length && !data.browse_label) {
+    editor.innerHTML = `<div class="empty-state">
+      <h2>No Curriculum Loaded</h2>
+      <p>Load a JSON file, paste a URL, or start fresh.</p>
+      <div class="btns">
+        <button class="btn btn-accent" onclick="startFresh()">＋ Start Fresh</button>
+      </div></div>`;
+    return;
+  }
+
+  const sortedYi = getSortedYears();
+  syncColState();
+  let html = '';
+
+  // Browse label bar
+  html += `<div class="browse-bar">
+    <span class="browse-bar-label">Browse Label</span>
+    <input value="${esc(data.browse_label||'')}" oninput="data.browse_label=this.value;refreshJsonPanel()" placeholder="e.g. Browse by Year">
+    <span class="pill pill-a">${years.length} years</span>
+  </div>`;
+
+  sortedYi.forEach(yi => {
+    const year = years[yi];
+    const yOpen = !colState.years[yi];
+    html += buildYearCard(year, yi, yOpen);
+  });
+
+  html += `<div class="add-year-btn"><button class="btn btn-accent" onclick="addYear()">＋ Add Year</button></div>`;
+  editor.innerHTML = html;
+  // Re-apply collapse state from colState (HTML always renders expanded)
+  (data.years||[]).forEach((y, yi) => {
+    if (colState.years[yi]) {
+      const body = document.getElementById(`body-years-${yi}`);
+      const arrow = document.getElementById(`arrow-years-${yi}`);
+      if (body) body.style.display = 'none';
+      if (arrow) arrow.classList.remove('open');
+    }
+    (y.subjects||[]).forEach((s, si) => {
+      if (colState.subjects[`${yi}-${si}`]) {
+        const body = document.getElementById(`body-subjects-${yi}-${si}`);
+        const arrow = document.getElementById(`arrow-subjects-${yi}-${si}`);
+        if (body) body.style.display = 'none';
+        if (arrow) arrow.classList.remove('open');
+      }
+      (s.chapters||[]).forEach((_, ci) => {
+        if (colState.chapters[`${yi}-${si}-${ci}`]) {
+          const body = document.getElementById(`body-chapters-${yi}-${si}-${ci}`);
+          const arrow = document.getElementById(`arrow-chapters-${yi}-${si}-${ci}`);
+          if (body) body.style.display = 'none';
+          if (arrow) arrow.classList.remove('open');
+        }
+      });
+    });
+  });
+}
+
+// ─────────────────────── COLLAPSE STATE ───────────────────────
+const colState = { years: {}, subjects: {}, chapters: {} };
+
+// Rebuild colState to match current data shape, defaulting unknown items
+// to collapsed (true) when editorExpanded is off, expanded (false) when on.
+function syncColState() {
+  const defaultVal = !editorExpanded; // true=collapsed, false=expanded
+  const newYears = {}, newSubjects = {}, newChapters = {};
+  (data.years||[]).forEach((y, yi) => {
+    newYears[yi] = (colState.years[yi] !== undefined) ? colState.years[yi] : defaultVal;
+    (y.subjects||[]).forEach((s, si) => {
+      const sk = `${yi}-${si}`;
+      newSubjects[sk] = (colState.subjects[sk] !== undefined) ? colState.subjects[sk] : defaultVal;
+      (s.chapters||[]).forEach((_, ci) => {
+        const ck = `${yi}-${si}-${ci}`;
+        newChapters[ck] = (colState.chapters[ck] !== undefined) ? colState.chapters[ck] : defaultVal;
+      });
+    });
+  });
+  colState.years = newYears;
+  colState.subjects = newSubjects;
+  colState.chapters = newChapters;
+}
+
+function toggleCollapse(type, key) {
+  colState[type][key] = !colState[type][key];
+  const body = document.getElementById(`body-${type}-${key}`);
+  const arrow = document.getElementById(`arrow-${type}-${key}`);
+  if (body) body.style.display = colState[type][key] ? 'none' : '';
+  if (arrow) arrow.classList.toggle('open', !colState[type][key]);
+}
+
+// ─────────────────────── BUILD YEAR CARD ───────────────────────
+function buildYearCard(year, yi, yOpen) {
+  const subCount = (year.subjects||[]).length;
+  let subsHtml = (year.subjects||[]).map((sub,si) => buildSubjectCard(sub,yi,si)).join('');
+  return `<div class="year-card" id="yr-${yi}"
+    draggable="true" ondragstart="cardDrag(event,'year',${yi})" ondragover="cardDragOver(event,this)" ondrop="cardDrop(event,'year',${yi})" ondragleave="this.classList.remove('drag-over')">
+    <div class="card-header">
+      <div class="card-header-click" onclick="toggleCollapse('years',${yi})">
+        <span class="drag-grip" ondragstart="event.stopPropagation()" title="Drag to reorder">⠿</span>
+        <span class="collapse-arrow open" id="arrow-years-${yi}">▶</span>
+        <span class="year-badge">Y${yi+1}</span>
+        <input type="search" class="card-title-input" id="yt-${yi}" value="${esc(year.year_title||'')}"
+          onclick="event.stopPropagation()"
+          oninput="data.years[${yi}].year_title=this.value;syncTreeInput('y${yi}',this.value);refreshJsonPanel()"
+          placeholder="Year title"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <span class="card-meta">${subCount} subject${subCount!==1?'s':''}</span>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-xs" onclick="event.stopPropagation();moveYear(${yi},-1)" title="Move up">↑</button>
+        <button class="btn btn-xs" onclick="event.stopPropagation();moveYear(${yi},1)" title="Move down">↓</button>
+        <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();removeYear(${yi})">✕</button>
+      </div>
+    </div>
+    <div class="card-body" id="body-years-${yi}">
+      <div class="section-row">
+        <span class="section-label">Subjects</span>
+        <button class="btn btn-sm" onclick="addSubject(${yi})">＋ Subject</button>
+      </div>
+      ${subsHtml || `<div style="color:var(--text-muted);font-size:13px;padding:6px 0;">No subjects yet.</div>`}
+    </div>
+  </div>`;
+}
+
+function buildSubjectCard(sub, yi, si) {
+  const sOpen = !colState.subjects[`${yi}-${si}`];
+  const name = sub.subject_name?.en || 'Subject';
+  const chs = (sub.chapters||[]);
+  let chHtml = chs.map((ch,ci) => buildChapterCard(ch,yi,si,ci)).join('');
+  return `<div class="subject-card" id="sub-${yi}-${si}"
+    draggable="true" ondragstart="cardDrag(event,'subject',${yi},${si});event.stopPropagation()" ondragover="cardDragOver(event,this);event.stopPropagation()" ondrop="cardDrop(event,'subject',${yi},${si});event.stopPropagation()" ondragleave="this.classList.remove('drag-over')">
+    <div class="subject-header">
+      <div class="subject-header-click" onclick="toggleCollapse('subjects','${yi}-${si}')">
+        <span class="drag-grip" title="Drag">⠿</span>
+        <span class="collapse-arrow open" id="arrow-subjects-${yi}-${si}">▶</span>
+        <span class="subj-dot"></span>
+        <span class="subj-title" id="sh-${yi}-${si}">${esc(name)}</span>
+        <span class="pill pill-g" style="margin-left:6px;">${chs.length}ch</span>
+      </div>
+      <div style="display:flex;gap:4px;" onclick="event.stopPropagation()">
+        <button class="btn btn-xs" onclick="moveSub(${yi},${si},-1)">↑</button>
+        <button class="btn btn-xs" onclick="moveSub(${yi},${si},1)">↓</button>
+        <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();removeSub(${yi},${si})">✕</button>
+      </div>
+    </div>
+    <div class="subject-body" id="body-subjects-${yi}-${si}">
+      <div class="bilingual-row">
+        <div class="field-group">
+          <label class="field-label">Name (EN)</label>
+          <input type="search" class="field-input" id="sn-en-${yi}-${si}" value="${esc(sub.subject_name?.en||'')}"
+            oninput="setSub(${yi},${si},'en',this.value);syncTreeInput('y${yi}s${si}',this.value);document.getElementById('sh-${yi}-${si}').textContent=this.value;refreshJsonPanel()"
+            placeholder="English"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Name (BN)</label>
+          <input type="search" class="field-input" value="${esc(sub.subject_name?.bn||'')}"
+            oninput="setSub(${yi},${si},'bn',this.value)" placeholder="বাংলা"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="img-field-row">
+        <div class="img-preview" id="imgprev-${yi}-${si}">
+          ${sub.img ? `<img src="${esc(sub.img)}" onerror="this.parentElement.innerHTML='<span class=img-preview-empty>🖼</span>'">` : '<span class="img-preview-empty">🖼</span>'}
+        </div>
+        <div class="field-group" style="flex:1">
+          <label class="field-label">Image URL</label>
+          <input type="search" class="field-input url-input" value="${esc(sub.img||'')}"
+            oninput="setSubImg(${yi},${si},this.value)" placeholder="https://…"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+      </div>
+      <hr class="div">
+      <div class="section-row">
+        <span class="section-label">Chapters</span>
+        <button class="btn btn-sm" onclick="addChapter(${yi},${si})">＋ Chapter</button>
+      </div>
+      ${chHtml || `<div style="color:var(--text-muted);font-size:12px;padding:4px 0;">No chapters yet.</div>`}
+    </div>
+  </div>`;
+}
+
+function buildChapterCard(ch, yi, si, ci) {
+  const cOpen = !colState.chapters[`${yi}-${si}-${ci}`];
+  const topics = ch.topics||[];
+  let topHtml = topics.map((t,ti) => buildTopicRow(t,yi,si,ci,ti)).join('');
+  return `<div class="chapter-card" id="ch-card-${yi}-${si}-${ci}"
+    draggable="true" ondragstart="cardDrag(event,'chapter',${yi},${si},${ci});event.stopPropagation()" ondragover="cardDragOver(event,this);event.stopPropagation()" ondrop="cardDrop(event,'chapter',${yi},${si},${ci});event.stopPropagation()" ondragleave="this.classList.remove('drag-over')">
+    <div class="chapter-header">
+      <div class="chapter-header-click" onclick="toggleCollapse('chapters','${yi}-${si}-${ci}')">
+        <span class="drag-grip" title="Drag">⠿</span>
+        <span class="collapse-arrow open" id="arrow-chapters-${yi}-${si}-${ci}">▶</span>
+        <span class="ch-dot"></span>
+        <span class="ch-title" id="ch-${yi}-${si}-${ci}">${esc(ch.chapter_title||'')}</span>
+        <span style="color:var(--text-muted);font-size:11px;margin-left:6px;">${topics.length}t</span>
+      </div>
+      <div style="display:flex;gap:4px;" onclick="event.stopPropagation()">
+        <button class="btn btn-xs" onclick="moveCh(${yi},${si},${ci},-1)">↑</button>
+        <button class="btn btn-xs" onclick="moveCh(${yi},${si},${ci},1)">↓</button>
+        <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();removeCh(${yi},${si},${ci})">✕</button>
+      </div>
+    </div>
+    <div class="chapter-body" id="body-chapters-${yi}-${si}-${ci}">
+      <div class="field-group" style="margin-bottom:10px;">
+        <label class="field-label">Chapter Title</label>
+        <input type="search" class="field-input" id="ct-${yi}-${si}-${ci}" value="${esc(ch.chapter_title||'')}"
+          oninput="data.years[${yi}].subjects[${si}].chapters[${ci}].chapter_title=this.value;syncTreeInput('y${yi}s${si}c${ci}',this.value);document.getElementById('ch-${yi}-${si}-${ci}').textContent=this.value;refreshJsonPanel()"
+          placeholder="Chapter title"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="topics-header"><span>Title</span><span>URL</span><span></span></div>
+      <div id="topics-${yi}-${si}-${ci}">${topHtml}</div>
+      <button class="btn btn-sm" style="margin-top:6px" onclick="addTopic(${yi},${si},${ci})">＋ Topic</button>
+    </div>
+  </div>`;
+}
+
+function buildTopicRow(t, yi, si, ci, ti) {
+  return `<div class="topic-row" id="tp-${yi}-${si}-${ci}-${ti}"
+    draggable="true" ondragstart="cardDrag(event,'topic',${yi},${si},${ci},${ti});event.stopPropagation()" ondragover="cardDragOver(event,this);event.stopPropagation()" ondrop="cardDrop(event,'topic',${yi},${si},${ci},${ti});event.stopPropagation()" ondragleave="this.classList.remove('drag-over')">
+    <input type="search" value="${esc(t.title||'')}" placeholder="Topic title"
+      oninput="setTopicField(${yi},${si},${ci},${ti},'title',this.value);syncTopicTree(${yi},${si},${ci},${ti},this.value)"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <input type="search" class="topic-url-input" value="${esc(t.url||'')}" placeholder="Video ID or YouTube URL…"
+      oninput="handleUrlInput(this,${yi},${si},${ci},${ti})"
+      autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div style="display:flex;gap:3px;justify-content:flex-end;">
+      <span class="topic-drag" title="Drag">⠿</span>
+      <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();removeTopic(${yi},${si},${ci},${ti})">✕</button>
+    </div>
+  </div>`;
+}
+
+function extractYoutubeId(val) {
+  val = val.trim();
+  // Already a plain ID (11 chars, no slashes/dots)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(val)) return val;
+  try {
+    const url = new URL(val);
+    // youtube.com/watch?v=ID or with extra params
+    if (url.searchParams.get('v')) return url.searchParams.get('v');
+    // youtu.be/ID
+    if (url.hostname === 'youtu.be') return url.pathname.slice(1).split('?')[0];
+    // youtube.com/embed/ID or /shorts/ID
+    const m = url.pathname.match(/(?:embed|shorts|v)\/([a-zA-Z0-9_-]{11})/);
+    if (m) return m[1];
+  } catch {}
+  // Fallback: grab v= param from raw string
+  const m = val.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (m) return m[1];
+  return val; // return as-is if nothing matched
+}
+
+function handleUrlInput(el, yi, si, ci, ti) {
+  const raw = el.value;
+  const id = extractYoutubeId(raw);
+  if (id !== raw) {
+    el.value = id;
+  }
+  setTopicField(yi, si, ci, ti, 'url', el.value);
+}
+
+// ─────────────────────── CARD DRAG (main editor) ───────────────────────
+let cardDragSrc = null;
+function cardDrag(e, type, yi, si, ci, ti) {
+  cardDragSrc = {type, yi, si, ci, ti};
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', JSON.stringify({type,yi,si,ci,ti}));
+  const el = e.currentTarget;
+  setTimeout(() => el.classList.add('dragging'), 0);
+}
+function cardDragOver(e, el) {
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  el.classList.add('drag-over');
+}
+function cardDrop(e, type, yi, si, ci, ti) {
+  e.preventDefault(); e.stopPropagation();
+  const el = e.currentTarget;
+  el.classList.remove('drag-over');
+  el.classList.remove('dragging');
+  // remove dragging from all cards (cleanup)
+  document.querySelectorAll('.dragging').forEach(d => d.classList.remove('dragging'));
+  if (!cardDragSrc || cardDragSrc.type !== type) { cardDragSrc = null; return; }
+  const s = cardDragSrc; cardDragSrc = null;
+  if (type==='year' && s.yi!==yi) { moveInArray(data.years, s.yi, yi); render(); refreshJsonPanel(); }
+  else if (type==='subject' && s.yi===yi && s.si!==si) { moveInArray(data.years[yi].subjects, s.si, si); render(); refreshJsonPanel(); }
+  else if (type==='chapter' && s.yi===yi && s.si===si && s.ci!==ci) { moveInArray(data.years[yi].subjects[si].chapters, s.ci, ci); render(); refreshJsonPanel(); }
+  else if (type==='topic' && s.yi===yi && s.si===si && s.ci===ci && s.ti!==ti) { moveInArray(data.years[yi].subjects[si].chapters[ci].topics, s.ti, ti); render(); refreshJsonPanel(); }
+}
+
+// ─────────────────────── SYNC TREE INPUTS (realtime) ───────────────────────
+function syncTreeInput(key, val) {
+  // key = 'y0', 'y0s1', 'y0s1c2'
+  const inputs = document.querySelectorAll(`.tree-editable`);
+  // We look for the input inside the matching tree item
+  // Simple approach: re-render tree silently
+  renderTree();
+}
+function syncTopicTree(yi, si, ci, ti, val) {
+  // Update matching sidebar tree-editable input directly (no full re-render)
+  const treeItem = document.querySelector(`#treeScroll .tree-item.depth-3:nth-of-type(${ti+1})`);
+  // Use a more reliable selector via the drag handler attribute
+  const allTopics = document.querySelectorAll(`[ondragstart*="treeDragStart(event,'topic',${yi},${si},${ci},${ti})"]`);
+  allTopics.forEach(el => {
+    const inp = el.querySelector('.tree-editable');
+    if (inp && inp !== document.activeElement) inp.value = val;
+  });
+}
+
+// ─────────────────────── MUTATIONS ───────────────────────
+function setSubImg(yi,si,val) {
+  data.years[yi].subjects[si].img = val;
+  const prev = document.getElementById(`imgprev-${yi}-${si}`);
+  if (prev) prev.innerHTML = val ? `<img src="${esc(val)}" onerror="this.parentElement.innerHTML='<span class=img-preview-empty>🖼</span>'">` : '<span class="img-preview-empty">🖼</span>';
+  refreshJsonPanel();
+}
+function setSub(yi,si,lang,val) {
+  if (!data.years[yi].subjects[si].subject_name) data.years[yi].subjects[si].subject_name={};
+  data.years[yi].subjects[si].subject_name[lang] = val;
+  refreshJsonPanel();
+}
+function setTopicField(yi,si,ci,ti,field,val) {
+  data.years[yi].subjects[si].chapters[ci].topics[ti][field] = val;
+  refreshJsonPanel();
+}
+
+function addYear() {
+  if (!data.years) data.years=[];
+  data.years.push({year_title:'New Year',subjects:[]});
+  const yi = data.years.length - 1;
+  colState.years[yi] = !editorExpanded; // respect current expand state
+  render(); refreshJsonPanel();
+  setTimeout(() => { const el = document.getElementById(`yr-${yi}`); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 80);
+}
+function removeYear(yi) {
+  data.years.splice(yi,1);
+  colState.years = {}; colState.subjects = {}; colState.chapters = {};
+  render(); refreshJsonPanel();
+  toast('Year removed','s');
+}
+function moveYear(yi,dir) {
+  const ni=yi+dir; if(ni<0||ni>=data.years.length) return;
+  moveInArray(data.years,yi,ni); render(); refreshJsonPanel();
+}
+function addSubject(yi) {
+  data.years[yi].subjects=data.years[yi].subjects||[];
+  data.years[yi].subjects.push({subject_name:{en:'New Subject',bn:''},img:'',chapters:[]});
+  const si = data.years[yi].subjects.length - 1;
+  colState.years[yi] = false;
+  colState.subjects[`${yi}-${si}`] = false;
+  treeOpen[`y${yi}`] = true;
+  render(); refreshJsonPanel();
+  setTimeout(() => { const el = document.getElementById(`sub-${yi}-${si}`); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 80);
+}
+function removeSub(yi,si) {
+  data.years[yi].subjects.splice(si,1);
+  colState.subjects = {}; colState.chapters = {};
+  render(); refreshJsonPanel();
+}
+function moveSub(yi,si,dir) {
+  const arr=data.years[yi].subjects; const ni=si+dir;
+  if(ni<0||ni>=arr.length) return; moveInArray(arr,si,ni); render(); refreshJsonPanel();
+}
+function addChapter(yi,si) {
+  data.years[yi].subjects[si].chapters=data.years[yi].subjects[si].chapters||[];
+  data.years[yi].subjects[si].chapters.push({chapter_title:'New Chapter',topics:[]});
+  const ci = data.years[yi].subjects[si].chapters.length - 1;
+  colState.years[yi] = false;
+  colState.subjects[`${yi}-${si}`] = false;
+  colState.chapters[`${yi}-${si}-${ci}`] = false;
+  treeOpen[`y${yi}`] = true;
+  treeOpen[`y${yi}s${si}`] = true;
+  render(); refreshJsonPanel();
+  setTimeout(() => { const el = document.getElementById(`ch-card-${yi}-${si}-${ci}`); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 80);
+}
+function removeCh(yi,si,ci) {
+  data.years[yi].subjects[si].chapters.splice(ci,1);
+  colState.chapters = {};
+  render(); refreshJsonPanel();
+}
+function moveCh(yi,si,ci,dir) {
+  const arr=data.years[yi].subjects[si].chapters; const ni=ci+dir;
+  if(ni<0||ni>=arr.length) return; moveInArray(arr,ci,ni); render(); refreshJsonPanel();
+}
+function addTopic(yi,si,ci) {
+  data.years[yi].subjects[si].chapters[ci].topics=data.years[yi].subjects[si].chapters[ci].topics||[];
+  data.years[yi].subjects[si].chapters[ci].topics.push({title:'',url:''});
+  colState.years[yi] = false;
+  colState.subjects[`${yi}-${si}`] = false;
+  colState.chapters[`${yi}-${si}-${ci}`] = false;
+  treeOpen[`y${yi}`] = true;
+  treeOpen[`y${yi}s${si}`] = true;
+  treeOpen[`y${yi}s${si}c${ci}`] = true;
+  render(); refreshJsonPanel();
+  setTimeout(() => { const el = document.getElementById(`tp-${yi}-${si}-${ci}-${(data.years[yi].subjects[si].chapters[ci].topics.length-1)}`); if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 80);
+}
+function removeTopic(yi,si,ci,ti) {
+  data.years[yi].subjects[si].chapters[ci].topics.splice(ti,1); render(); refreshJsonPanel();
+}
+
+function scrollToId(id) {
+  // Expand any collapsed ancestors in the editor before scrolling
+  const el = document.getElementById(id);
+  if (!el) return;
+  // Parse the id to expand ancestors
+  const parts = id.split('-');
+  if (id.startsWith('tp-') && parts.length >= 5) {
+    const yi = +parts[1], si = +parts[2], ci = +parts[3];
+    if (colState.years[yi]) toggleCollapse('years', yi);
+    if (colState.subjects[`${yi}-${si}`]) toggleCollapse('subjects', `${yi}-${si}`);
+    if (colState.chapters[`${yi}-${si}-${ci}`]) toggleCollapse('chapters', `${yi}-${si}-${ci}`);
+  } else if (id.startsWith('ch-card-') && parts.length >= 5) {
+    const yi = +parts[2], si = +parts[3], ci = +parts[4];
+    if (colState.years[yi]) toggleCollapse('years', yi);
+    if (colState.subjects[`${yi}-${si}`]) toggleCollapse('subjects', `${yi}-${si}`);
+  } else if (id.startsWith('sub-') && parts.length >= 4) {
+    const yi = +parts[1], si = +parts[2];
+    if (colState.years[yi]) toggleCollapse('years', yi);
+  }
+  setTimeout(() => {
+    const target = document.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.style.transition = 'box-shadow .2s';
+      target.style.boxShadow = '0 0 0 2px var(--accent)';
+      setTimeout(() => { target.style.boxShadow = ''; }, 1600);
+    }
+  }, 60);
+}
+
+// ─────────────────────── SEARCH ───────────────────────
+function buildSearchIndex() {
+  const results = [];
+  const years = data.years || [];
+  years.forEach((year,yi) => {
+    results.push({type:'year',icon:'📅',title:year.year_title||'Year',sub:'',id:`yr-${yi}`});
+    (year.subjects||[]).forEach((sub,si) => {
+      results.push({type:'subject',icon:'📖',title:sub.subject_name?.en||'Subject',sub:year.year_title||'',id:`sub-${yi}-${si}`});
+      (sub.chapters||[]).forEach((ch,ci) => {
+        results.push({type:'chapter',icon:'📑',title:ch.chapter_title||'Chapter',sub:`${year.year_title} → ${sub.subject_name?.en||''}`,id:`ch-card-${yi}-${si}-${ci}`});
+        (ch.topics||[]).forEach((t,ti) => {
+          results.push({type:'topic',icon:t.url?'▶':'•',title:t.title||'Topic',sub:`${sub.subject_name?.en||''} → ${ch.chapter_title||''}`,url:t.url||'',id:`tp-${yi}-${si}-${ci}-${ti}`});
+        });
+      });
+    });
+  });
+  return results;
+}
+
+function onHeaderSearch() {
+  const q = document.getElementById('headerSearch').value.toLowerCase().trim();
+  const drop = document.getElementById('headerSearchDrop');
+  if (!q) { drop.innerHTML = ''; drop.classList.remove('open'); return; }
+  const idx = buildSearchIndex();
+  const hits = idx.filter(r => r.title.toLowerCase().includes(q) || r.sub.toLowerCase().includes(q) || (r.url||'').toLowerCase().includes(q)).slice(0, 12);
+  if (!hits.length) { drop.innerHTML = `<div class="search-empty">No results</div>`; drop.classList.add('open'); return; }
+  drop.innerHTML = hits.map(r => `<div class="search-result-item" onmousedown="event.preventDefault();scrollToId('${r.id}');if(isMobile())mobShowTab('edit');closeHeaderSearch()">
+    <div class="search-result-icon">${r.icon}</div>
+    <div class="search-result-body">
+      <div class="search-result-title">${esc(r.title)}</div>
+      <div class="search-result-sub">${esc(r.sub)}${r.url ? ` · <span style="font-family:var(--font-mono);color:var(--accent)">${esc(r.url)}</span>` : ''}</div>
+    </div>
+  </div>`).join('');
+  drop.classList.add('open');
+}
+function openHeaderSearch() { if (document.getElementById('headerSearch').value.trim()) document.getElementById('headerSearchDrop').classList.add('open'); }
+function closeHeaderSearch() { document.getElementById('headerSearchDrop').classList.remove('open'); document.getElementById('headerSearch').value = ''; }
+function closeHeaderSearchDelay() { setTimeout(closeHeaderSearch, 200); }
+
+// ─────────────────────── UTILS ───────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg, type='s') {
+  const c=document.getElementById('toastStack');
+  const t=document.createElement('div'); t.className=`toast ${type}`; t.textContent=msg;
+  c.appendChild(t); setTimeout(()=>t.remove(),2800);
+}
+
+// ─────────────────────── FILE DRAG & DROP ───────────────────────
+(function initFileDrop() {
+  const overlay = document.getElementById('dropOverlay');
+  const hint = document.getElementById('loadDropHint');
+  let dragCounter = 0; // track nested dragenter/dragleave
+
+  function hasFiles(e) {
+    return e.dataTransfer && Array.from(e.dataTransfer.types).includes('Files');
+  }
+
+  function showDropOverlay() {
+    overlay.classList.add('visible');
+    if (hint) hint.classList.add('pulsing');
+  }
+  window.hideDropOverlay = function() {
+    overlay.classList.remove('visible', 'over');
+    if (hint) hint.classList.remove('pulsing');
+    dragCounter = 0;
+  };
+
+  function readDroppedFile(file) {
+    if (!file || !file.name.endsWith('.json')) {
+      toast('Please drop a .json file', 'e');
+      hideDropOverlay(); return;
+    }
+    loadedFileName = file.name.replace(/\.json$/i, '');
+    lastExportedName = '';
+    const r = new FileReader();
+    r.onload = ev => {
+      try {
+        data = JSON.parse(ev.target.result);
+        closeJsonPanel();
+        render();
+        toast(`✓ Loaded "${file.name}"`, 's');
+      } catch { toast('Invalid JSON in file', 'e'); }
+      hideDropOverlay();
+    };
+    r.readAsText(file);
+  }
+
+  // Window-level: show overlay whenever ANY file is dragged over the page
+  window.addEventListener('dragenter', e => {
+    if (!hasFiles(e)) return;
+    dragCounter++;
+    if (dragCounter === 1) showDropOverlay();
+  });
+
+  window.addEventListener('dragleave', e => {
+    if (!hasFiles(e)) return;
+    dragCounter--;
+    if (dragCounter <= 0) hideDropOverlay();
+  });
+
+  window.addEventListener('dragover', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    overlay.classList.add('over');
+  });
+
+  window.addEventListener('drop', e => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragCounter = 0;
+    const file = e.dataTransfer.files[0];
+    readDroppedFile(file);
+  });
+
+  // Also handle direct drop on the overlay/zone (redundant but explicit)
+  overlay.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation();
+    dragCounter = 0;
+    const file = e.dataTransfer.files[0];
+    readDroppedFile(file);
+  });
+  overlay.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+
+  // Keyboard Escape to dismiss
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (overlay.classList.contains('visible')) hideDropOverlay();
+      if (document.getElementById('exportModal').classList.contains('open')) closeExportModal();
+    }
+  });
+})();
+
+// ─────────────────────── EXPAND VIEW TOGGLES ───────────────────────
+function toggleExpandAll(btn) {
+  btn.classList.toggle('active');
+  const isExpanded = btn.classList.contains('active');
+  editorExpanded = isExpanded;
+  if (isExpanded) {
+    // Expand sidebar tree
+    Object.keys(treeOpen).forEach(k => treeOpen[k] = true);
+    renderTree();
+    // Expand editor cards
+    document.querySelectorAll('.card-body, .subject-body, .chapter-body').forEach(el => el.style.display = '');
+    document.querySelectorAll('.collapse-arrow').forEach(el => el.classList.add('open'));
+    (data.years||[]).forEach((y,yi) => {
+      colState.years[yi] = false;
+      (y.subjects||[]).forEach((s,si) => {
+        colState.subjects[`${yi}-${si}`] = false;
+        (s.chapters||[]).forEach((_,ci) => { colState.chapters[`${yi}-${si}-${ci}`] = false; });
+      });
+    });
+  } else {
+    // Collapse sidebar tree
+    Object.keys(treeOpen).forEach(k => treeOpen[k] = false);
+    renderTree();
+    // Collapse editor cards
+    document.querySelectorAll('.card-body, .subject-body, .chapter-body').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.collapse-arrow').forEach(el => el.classList.remove('open'));
+    (data.years||[]).forEach((y,yi) => {
+      colState.years[yi] = true;
+      (y.subjects||[]).forEach((s,si) => {
+        colState.subjects[`${yi}-${si}`] = true;
+        (s.chapters||[]).forEach((_,ci) => { colState.chapters[`${yi}-${si}-${ci}`] = true; });
+      });
+    });
+  }
+}
+
+// Auto-expand a specific item in the editor (used after add operations)
+function expandEditorItem(yi, si, ci) {
+  // Expand the year
+  colState.years[yi] = false;
+  const yBody = document.getElementById(`body-years-${yi}`);
+  const yArrow = document.getElementById(`arrow-years-${yi}`);
+  if (yBody) yBody.style.display = '';
+  if (yArrow) yArrow.classList.add('open');
+
+  if (si !== undefined) {
+    colState.subjects[`${yi}-${si}`] = false;
+    const sBody = document.getElementById(`body-subjects-${yi}-${si}`);
+    const sArrow = document.getElementById(`arrow-subjects-${yi}-${si}`);
+    if (sBody) sBody.style.display = '';
+    if (sArrow) sArrow.classList.add('open');
+  }
+
+  if (ci !== undefined) {
+    colState.chapters[`${yi}-${si}-${ci}`] = false;
+    const cBody = document.getElementById(`body-chapters-${yi}-${si}-${ci}`);
+    const cArrow = document.getElementById(`arrow-chapters-${yi}-${si}-${ci}`);
+    if (cBody) cBody.style.display = '';
+    if (cArrow) cArrow.classList.add('open');
+  }
+}
+
+function toggleJsonExpand(btn) {
+  btn.classList.toggle('active');
+  const ta = document.getElementById('rawJson');
+  const lbl = btn.querySelector('.json-expand-label');
+  const isExpanded = btn.classList.contains('active');
+  if (isExpanded) {
+    try { ta.value = JSON.stringify(JSON.parse(ta.value), null, 2); } catch {}
+    ta.style.fontSize = '12.5px';
+    if (lbl) lbl.textContent = 'Compact';
+  } else {
+    try { ta.value = JSON.stringify(JSON.parse(ta.value)); } catch {}
+    ta.style.fontSize = '11px';
+    if (lbl) lbl.textContent = 'Expand';
+  }
+}
+
+// ─────────────────────── RESIZABLE PANELS ───────────────────────
+(function initResize() {
+  // Sidebar resize (right edge)
+  const sidebarHandle = document.getElementById('sidebarResizeHandle');
+  const sidebar = document.getElementById('sidebar');
+  const app = document.querySelector('.app');
+  let sResizing = false, sStartX = 0, sStartW = 0;
+
+  sidebarHandle.addEventListener('mousedown', e => {
+    sResizing = true; sStartX = e.clientX; sStartW = sidebar.offsetWidth;
+    sidebarHandle.classList.add('dragging');
+    app.classList.add('resizing-h');
+    e.preventDefault();
+  });
+
+  // JSON panel resize (left edge)
+  const jsonHandle = document.getElementById('jsonResizeHandle');
+  const jsonPanel = document.getElementById('jsonPanel');
+  let jResizing = false, jStartX = 0, jStartW = 0;
+
+  jsonHandle.addEventListener('mousedown', e => {
+    if (!jsonPanel.classList.contains('open')) return;
+    jResizing = true; jStartX = e.clientX; jStartW = jsonPanel.offsetWidth;
+    jsonHandle.classList.add('dragging');
+    app.classList.add('resizing-h');
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (sResizing) {
+      const newW = Math.max(180, Math.min(600, sStartW + (e.clientX - sStartX)));
+      sidebar.style.width = newW + 'px';
+      sidebar.style.minWidth = newW + 'px';
+      // deactivate expand toggle if manually resizing
+      const tog = document.getElementById('sidebarExpandToggle');
+      if (tog) tog.classList.remove('active');
+    }
+    if (jResizing) {
+      const delta = jStartX - e.clientX; // dragging left handle: move left = bigger
+      const newW = Math.max(260, Math.min(800, jStartW + delta));
+      jsonPanel.style.width = newW + 'px';
+      jsonPanel.style.transition = 'none';
+      const tog = document.getElementById('jsonExpandToggle');
+      if (tog) tog.classList.remove('active');
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (sResizing) { sResizing = false; sidebarHandle.classList.remove('dragging'); app.classList.remove('resizing-h'); }
+    if (jResizing) { jResizing = false; jsonHandle.classList.remove('dragging'); app.classList.remove('resizing-h'); jsonPanel.style.transition = ''; }
+  });
+})();
+
+// ─────────────────────── DRAG CLEANUP (dragend global) ───────────────────────
+document.addEventListener('dragend', () => {
+  document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  cardDragSrc = null; dragSrc = null;
+});
+
+// ─────────────────────── COMMIT MESSAGE GENERATOR ───────────────────────
+function _flattenData(d) {
+  const map = new Map();
+  // Use positional index in keys so same-named siblings are tracked separately
+  (d.years || []).forEach((y, yi) => {
+    const yName = y.year_title || '';
+    const yKey = `Y[${yi}]:${yName}`;
+    map.set(yKey, { label: yName, type: 'year' });
+    (y.subjects || []).forEach((s, si) => {
+      const sName = s.subject_name?.en || '';
+      const sKey = `${yKey}/S[${si}]:${sName}`;
+      map.set(sKey, { label: yName + '/' + sName, type: 'subject' });
+      (s.chapters || []).forEach((ch, ci) => {
+        const cName = ch.chapter_title || '';
+        const cKey = `${sKey}/C[${ci}]:${cName}`;
+        map.set(cKey, { label: yName + '/' + sName + '/' + cName, type: 'chapter' });
+        (ch.topics || []).forEach((t, ti) => {
+          const tName = t.title || '';
+          const tVid  = (t.url || '').trim();
+          const tLabel = tName + (tVid ? ' (' + tVid + ')' : '');
+          map.set(`${cKey}/T[${ti}]:${tName}`,
+            { label: yName + '/' + sName + '/' + cName + '/' + tLabel, type: 'topic' });
+        });
+      });
+    });
+  });
+  return map;
+}
+
+function generateCommitMessage(before, after) {
+  if (!before || !after) return 'Update curriculum data';
+  const lines = [];
+
+  // Structural adds/removes — keyed by position so duplicates show separately
+  const bMap = _flattenData(before);
+  const aMap = _flattenData(after);
+  const added = [], removed = [];
+  aMap.forEach((v, k) => { if (!bMap.has(k)) added.push(v.label + ' added'); });
+  bMap.forEach((v, k) => { if (!aMap.has(k)) removed.push(v.label + ' removed'); });
+
+  // Rename / value-change detection at same positional index
+  const bYears = before.years || [], aYears = after.years || [];
+  for (let yi = 0; yi < Math.min(bYears.length, aYears.length); yi++) {
+    const bY = bYears[yi].year_title || '', aY = aYears[yi].year_title || '';
+    if (bY !== aY) lines.push(bY + ' changed to ' + aY);
+    const bSubs = bYears[yi].subjects || [], aSubs = aYears[yi].subjects || [];
+    for (let si = 0; si < Math.min(bSubs.length, aSubs.length); si++) {
+      const bS = bSubs[si].subject_name?.en || '', aS = aSubs[si].subject_name?.en || '';
+      const bSbn = bSubs[si].subject_name?.bn || '', aSbn = aSubs[si].subject_name?.bn || '';
+      const yCtx = aY || bY;
+      if (bS !== aS) lines.push(yCtx + '/' + bS + ' changed to ' + yCtx + '/' + aS);
+      if (bSbn !== aSbn) lines.push(yCtx + '/' + (bSbn || bS) + ' (bn) changed to ' + yCtx + '/' + (aSbn || aS) + ' (bn)');
+      const bChs = bSubs[si].chapters || [], aChs = aSubs[si].chapters || [];
+      for (let ci = 0; ci < Math.min(bChs.length, aChs.length); ci++) {
+        const bC = bChs[ci].chapter_title || '', aC = aChs[ci].chapter_title || '';
+        const sCtx = aS || bS;
+        if (bC !== aC) lines.push(yCtx + '/' + sCtx + '/' + bC + ' changed to ' + yCtx + '/' + sCtx + '/' + aC);
+        const bTops = bChs[ci].topics || [], aTops = aChs[ci].topics || [];
+        for (let ti = 0; ti < Math.min(bTops.length, aTops.length); ti++) {
+          const bT = bTops[ti].title || '', aT = aTops[ti].title || '';
+          const bV = (bTops[ti].url || '').trim(), aV = (aTops[ti].url || '').trim();
+          const cCtx = aC || bC;
+          if (bT !== aT || bV !== aV) {
+            const bLabel = bT + (bV ? ' (' + bV + ')' : '');
+            const aLabel = aT + (aV ? ' (' + aV + ')' : '');
+            lines.push(yCtx + '/' + sCtx + '/' + cCtx + '/' + bLabel + ' changed to ' + yCtx + '/' + sCtx + '/' + cCtx + '/' + aLabel);
+          }
+        }
+      }
+    }
+  }
+
+  lines.push(...added, ...removed);
+
+  // Append "contribute by ~username~" line
+  const username = (typeof localStorage !== 'undefined' && localStorage.getItem('ej-auth-displayname')) || '';
+  if (username) lines.push('contribute by ~' + username + '~');
+
+  if (!lines.length) return 'Update curriculum data';
+  return lines.join('\n');
+}
+
+// ─────────────────────── GITHUB SYNC ───────────────────────
+let ghFileSha = null; // SHA of the file currently loaded from GitHub (needed for PUT)
+
+function toggleLoadPanel() {
+  const title = document.getElementById('loadPanelTitle');
+  const body  = document.getElementById('loadPanelBody');
+  title.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+function toggleGhPanel() {
+  const title = document.getElementById('ghPanelTitle');
+  const body  = document.getElementById('ghPanelBody');
+  title.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+/* ── Token field masking (no type=password, no browser toolbar) ── */
+let _ghTokenEyeOpen = false;
+
+function _maskToken(input) {
+  const real = input.dataset.real || '';
+  if (!_ghTokenEyeOpen) {
+    input.value = real ? '•'.repeat(real.length) : '';
+    input.style.letterSpacing = real ? '3px' : '';
+  }
+}
+function _unmaskToken(input) {
+  input.value = input.dataset.real || '';
+  input.style.letterSpacing = '';
+}
+
+function ghTokenFocus(input) {
+  // Restore real text so user can edit
+  input.value = input.dataset.real || '';
+  input.style.letterSpacing = '';
+}
+function ghTokenBlur(input) {
+  // Commit whatever the user typed as the real value, save, then re-mask
+  const real = input.value.trim();
+  input.dataset.real = real;
+  // Sync both fields
+  ['ghToken','mobGhToken'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el !== input) el.dataset.real = real;
+  });
+  // Persist to localStorage
+  if (real) localStorage.setItem('ej-gh-token', real);
+  else localStorage.removeItem('ej-gh-token');
+  // Re-mask
+  if (!_ghTokenEyeOpen) _maskToken(input);
+}
+function ghTokenToggleEye() {
+  _ghTokenEyeOpen = !_ghTokenEyeOpen;
+  const eye = document.getElementById('ghTokenEye');
+  if (eye) eye.textContent = _ghTokenEyeOpen ? '🙈' : '👁';
+  ['ghToken','mobGhToken'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (_ghTokenEyeOpen) _unmaskToken(el);
+    else _maskToken(el);
+  });
+}
+// Called oninput — only saves dataset.real (actual chars typed while unmasked/focused)
+function ghSaveToken() {
+  const inp = document.getElementById('ghToken');
+  if (!inp) return;
+  // Only trust input.value when the field is focused (unmasked); otherwise use dataset.real
+  const real = (document.activeElement === inp) ? inp.value.trim() : (inp.dataset.real || '');
+  inp.dataset.real = real;
+  const mob = document.getElementById('mobGhToken');
+  if (mob) mob.dataset.real = real;
+  if (real) localStorage.setItem('ej-gh-token', real);
+  else localStorage.removeItem('ej-gh-token');
+}
+
+function ghSaveSettings() {
+  localStorage.setItem('ej-gh-fileurl', document.getElementById('ghFileUrl').value.trim());
+}
+
+function ghParseUrl(url) {
+  try {
+    // Format 1: https://github.com/owner/repo/blob/branch/path/to/file.json
+    const m1 = url.match(/github\.com\/([^/]+\/[^/]+)\/blob\/([^/]+)\/(.+)/);
+    if (m1) return { repo: m1[1], branch: m1[2], path: m1[3] };
+    // Format 2: https://raw.githubusercontent.com/owner/repo/refs/heads/branch/path/to/file.json
+    const m2 = url.match(/raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/refs\/heads\/([^/]+)\/(.+)/);
+    if (m2) return { repo: m2[1], branch: m2[2], path: m2[3] };
+    // Format 3: https://raw.githubusercontent.com/owner/repo/branch/path/to/file.json
+    const m3 = url.match(/raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/([^/]+)\/(.+)/);
+    if (m3) return { repo: m3[1], branch: m3[2], path: m3[3] };
+    return null;
+  } catch { return null; }
+}
+
+// Session-scoped token (survives clearSensitiveData which wipes localStorage)
+let _sessionGhToken = '';
+
+function ghInitInputs() {
+  const tok = _sessionGhToken || localStorage.getItem('ej-gh-token') || '';
+  const tokenInp = document.getElementById('ghToken');
+  const mobTokInp = document.getElementById('mobGhToken');
+  if (tokenInp) {
+    tokenInp.dataset.real = tok;
+    _maskToken(tokenInp);
+  }
+  if (mobTokInp) {
+    mobTokInp.dataset.real = tok;
+    _maskToken(mobTokInp);
+  }
+
+  // Use saved file URL first, then the specific active file hint, then fallback to repo hint
+  let fileUrl = localStorage.getItem('ej-gh-fileurl') || '';
+  if (!fileUrl) {
+    const fileHint = localStorage.getItem('ej-active-file-hint') || '';
+    if (fileHint) {
+      fileUrl = fileHint;
+    } else {
+      const repoHint = localStorage.getItem('ej-active-repo-hint') || '';
+      if (repoHint) fileUrl = 'https://github.com/' + repoHint + '/blob/main/';
+    }
+  }
+  const urlInp = document.getElementById('ghFileUrl');
+  if (urlInp) urlInp.value = fileUrl;
+  const mobUrl = document.getElementById('mobGhFileUrl');
+  if (mobUrl) mobUrl.value = fileUrl;
+
+  // Apply accent & theme from Eduyomi host
+  const theme  = localStorage.getItem('ej-synced-theme') || localStorage.getItem('eduyomi-theme');
+  const accent = localStorage.getItem('ej-synced-accent') || localStorage.getItem('eduyomi-accent');
+  if (theme)  document.documentElement.setAttribute('data-theme', theme);
+  if (accent) document.documentElement.style.setProperty('--accent-custom', accent);
+
+  // Auto-pull if both token and a valid file URL are already saved
+  if (tok && fileUrl && ghParseUrl(fileUrl)) {
+    setTimeout(ghFetch, 600);
+  }
+}
+// Run after DOM is ready so all input elements exist
+document.addEventListener('DOMContentLoaded', ghInitInputs);
+
+// ── Real-time sync: listen for messages from parent (index.html) ──
+window.addEventListener('message', function(e) {
+  try {
+    const d = e.data;
+    if (!d || typeof d !== 'object') return;
+    // Update GitHub file URL field live
+    if (d.type === 'ej:sync-gh-fileurl') {
+      const url = d.url || '';
+      const inp = document.getElementById('ghFileUrl');
+      const mob = document.getElementById('mobGhFileUrl');
+      if (inp) { inp.value = url; ghSaveSettings(); }
+      if (mob) mob.value = url;
+    }
+    // Update theme/accent live
+    if (d.type === 'ej:sync-theme') {
+      if (d.theme) document.documentElement.setAttribute('data-theme', d.theme);
+      if (d.accent) document.documentElement.style.setProperty('--accent-custom', d.accent);
+    }
+    // Clear GitHub URL (repo removed)
+    if (d.type === 'ej:clear-gh-fileurl') {
+      const inp = document.getElementById('ghFileUrl');
+      const mob = document.getElementById('mobGhFileUrl');
+      if (inp) { inp.value = ''; localStorage.removeItem('ej-gh-fileurl'); }
+      if (mob) mob.value = '';
+    }
+  } catch(err) {}
+});
+
+function ghSetStatus(msg, type) {
+  const el = document.getElementById('ghStatus');
+  if (el) { el.textContent = msg; el.className = 'gh-status show ' + (type || ''); if (type === 'ok') setTimeout(() => { el.className = 'gh-status'; }, 3000); }
+  // Also update mobile status
+  const mel = document.getElementById('mobGhStatus');
+  if (mel) { mel.textContent = msg; mel.className = 'gh-status show ' + (type || ''); if (type === 'ok') setTimeout(() => { mel.className = 'gh-status'; }, 3000); }
+}
+function ghClearStatus() {
+  const el = document.getElementById('ghStatus'); if (el) el.className = 'gh-status';
+  const mel = document.getElementById('mobGhStatus'); if (mel) mel.className = 'gh-status';
+}
+
+function ghGetFields() {
+  const token = _sessionGhToken || localStorage.getItem('ej-gh-token') || '';
+  const url   = localStorage.getItem('ej-gh-fileurl') || localStorage.getItem('ej-active-file-hint') || '';
+  const parsed = ghParseUrl(url);
+  if (!parsed) return { token, repo: '', path: '', branch: 'main' };
+  return { token, repo: parsed.repo, path: parsed.path, branch: parsed.branch };
+}
+
+async function ghFetch() {
+  const { token, repo, path, branch } = ghGetFields();
+  if (!repo || !path) return ghSetStatus('Enter a valid GitHub file URL', 'err');
+  if (!token)         return ghSetStatus('Enter your GitHub token', 'err');
+  ghSetStatus('⏳ Fetching…', 'loading');
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`,
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (!res.ok) { const e = await res.json(); throw new Error(e.message || res.status); }
+    const json = await res.json();
+    ghFileSha = json.sha;
+    const decoded = new TextDecoder().decode(Uint8Array.from(atob(json.content.replace(/\n/g, '')), c => c.charCodeAt(0)));
+    data = JSON.parse(decoded);
+    lastCommittedData = JSON.parse(JSON.stringify(data)); // snapshot after pull
+    loadedFileName = path.split('/').pop().replace(/\.json$/i, '');
+    lastExportedName = '';
+    render();
+    ghSetStatus('✓ Pulled from GitHub', 'ok');
+    toast('✓ Pulled from GitHub', 's');
+  } catch(e) {
+    ghSetStatus('✗ ' + e.message, 'err');
+    toast('GitHub fetch failed: ' + e.message, 'e');
+  }
+}
+
+function ghPushModal() {
+  const autoMsg = generateCommitMessage(lastCommittedData, data);
+  if (isMobile()) {
+    const row = document.getElementById('mobGhCommitRow');
+    const msg = document.getElementById('mobGhCommitMsg');
+    if (row && msg) { row.style.display = 'flex'; msg.value = autoMsg; }
+  } else {
+    const row = document.getElementById('ghCommitRow');
+    const msg = document.getElementById('ghCommitMsg');
+    if (row && msg) { row.style.display = 'flex'; msg.value = autoMsg; }
+  }
+}
+function ghCancelCommit() {
+  document.getElementById('ghCommitRow').style.display = 'none';
+  ghClearStatus();
+}
+
+async function ghPush() {
+  const { token, repo, path, branch } = ghGetFields();
+  if (!repo || !path) return ghSetStatus('Enter a valid GitHub file URL', 'err');
+  if (!token)         return ghSetStatus('Enter your GitHub token', 'err');
+  const commitMsg = document.getElementById('ghCommitMsg').value.trim() || 'Update curriculum data';
+
+  ghSetStatus('⏳ Pushing…', 'loading');
+  try {
+    // If we don't have SHA yet (new file or not pulled), try to fetch it first
+    if (!ghFileSha) {
+      const check = await fetch(
+        `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`,
+        { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
+      );
+      if (check.ok) { const j = await check.json(); ghFileSha = j.sha; }
+    }
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+    const body = { message: commitMsg, content, branch };
+    if (ghFileSha) body.sha = ghFileSha;
+
+    const res = await fetch(
+      `https://api.github.com/repos/${repo}/contents/${path}`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      }
+    );
+    if (!res.ok) { const e = await res.json(); throw new Error(e.message || res.status); }
+    const j = await res.json();
+    ghFileSha = j.content.sha; // update SHA for next push
+    lastCommittedData = JSON.parse(JSON.stringify(data)); // snapshot after push
+    document.getElementById('ghCommitRow').style.display = 'none';
+    ghSetStatus('✓ Pushed to GitHub', 'ok');
+    toast('✓ Committed to GitHub', 's');
+  } catch(e) {
+    ghSetStatus('✗ ' + e.message, 'err');
+    toast('GitHub push failed: ' + e.message, 'e');
+  }
+}
+
+// ─────────────────────── INIT ───────────────────────
+render();
+
+// ─────────────────────── MOBILE ───────────────────────
+function isMobile() { return window.innerWidth <= 768; }
+
+function mobCloseSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('mobBackdrop');
+  if (sidebar) sidebar.classList.remove('mob-open');
+  if (backdrop) backdrop.classList.remove('visible');
+}
+
+// ── Tab state ──
+let mobActiveTab = 'edit'; // default
+
+function mobShowTab(tab) {
+  if (!isMobile()) return;
+  mobActiveTab = tab;
+  document.querySelectorAll('.mob-tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.mob-bar-btn').forEach(b => b.classList.remove('active'));
+  const main = document.getElementById('mainEditor');
+
+  if (tab === 'tree') {
+    const drawer = document.getElementById('mobTreeDrawer');
+    if (drawer && drawer.classList.contains('open')) {
+      mobCloseTree();
+      return;
+    }
+    mobOpenTree();
+    document.getElementById('mobBtnTree').classList.add('active');
+    if (main) main.style.display = '';
+    document.getElementById('mobBtnEdit').classList.add('active');
+  } else if (tab === 'edit') {
+    mobCloseTree();
+    if (main) main.style.display = '';
+    document.getElementById('mobBtnEdit').classList.add('active');
+  } else if (tab === 'files') {
+    mobCloseTree();
+    if (main) main.style.display = 'none';
+    document.getElementById('mobFilesPanel').classList.add('active');
+    document.getElementById('mobBtnFiles').classList.add('active');
+    mobSyncJsonView();
+    mobSyncGhFieldsFromPC();
+  }
+}
+
+// Mobile expand/collapse toggle (replaces Settings tab button)
+let _mobExpanded = false;
+function mobToggleExpand(btn) {
+  _mobExpanded = !_mobExpanded;
+  btn.classList.toggle('active', _mobExpanded);
+  // Reuse the desktop expand logic via the sidebar toggle button
+  const desktopBtn = document.getElementById('sidebarExpandToggle');
+  if (desktopBtn) {
+    // Sync state then call toggleExpandAll
+    const isCurrentlyActive = desktopBtn.classList.contains('active');
+    if (isCurrentlyActive !== _mobExpanded) toggleExpandAll(desktopBtn);
+  }
+}
+
+// ── Tree drawer ──
+function mobOpenTree() {
+  const drawer = document.getElementById('mobTreeDrawer');
+  const backdrop = document.getElementById('mobTreeBackdrop');
+  // Clone/render tree content
+  const treeScroll = document.getElementById('treeScroll');
+  const content = document.getElementById('mobTreeContent');
+  if (treeScroll && content) content.innerHTML = treeScroll.innerHTML;
+  drawer.classList.add('open');
+  backdrop.classList.add('visible');
+}
+
+function mobCloseTree() {
+  document.getElementById('mobTreeDrawer').classList.remove('open');
+  document.getElementById('mobTreeBackdrop').classList.remove('visible');
+  if (mobActiveTab === 'tree') {
+    mobActiveTab = 'edit';
+    document.querySelectorAll('.mob-bar-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('mobBtnEdit').classList.add('active');
+    const main = document.getElementById('mainEditor');
+    if (main) main.style.display = '';
+  }
+}
+
+// Close tree when tree row clicked (navigate)
+document.addEventListener('click', e => {
+  if (!isMobile()) return;
+  const row = e.target.closest('.tree-row');
+  if (row && document.getElementById('mobTreeDrawer').classList.contains('open')) {
+    setTimeout(() => { mobCloseTree(); mobShowTab('edit'); }, 100);
+  }
+});
+
+// ── Files tab helpers ──
+function mobToggleSection(bodyId, titleEl) {
+  const body = document.getElementById(bodyId);
+  if (!body) return;
+  body.classList.toggle('open');
+  titleEl.classList.toggle('open');
+}
+
+function mobLoadFromURL() {
+  const url = document.getElementById('mobUrlInput').value.trim();
+  if (!url) return toast('Enter a URL','e');
+  fetch(url).then(r => r.json()).then(d => {
+    data = d;
+    try { const parts = new URL(url).pathname.split('/'); const last = parts[parts.length-1]; if (last.endsWith('.json')) { loadedFileName = last.replace(/\.json$/i,''); lastExportedName=''; } } catch {}
+    render(); toast('Loaded from URL','s');
+    mobShowTab('edit');
+  }).catch(() => toast('Fetch failed','e'));
+}
+
+function mobSyncGhFieldsFromPC() {
+  const pcUrl = document.getElementById('ghFileUrl');
+  const pcTok = document.getElementById('ghToken');
+  const mobUrl = document.getElementById('mobGhFileUrl');
+  const mobTok = document.getElementById('mobGhToken');
+  if (pcUrl && mobUrl && !mobUrl.value) mobUrl.value = pcUrl.value;
+  if (pcTok && mobTok && !mobTok.dataset.real) {
+    const realVal = pcTok.dataset.real || '';
+    mobTok.dataset.real = realVal;
+    _maskToken(mobTok);
+  }
+}
+
+function mobSyncGhUrl() {
+  const v = document.getElementById('mobGhFileUrl').value;
+  const pc = document.getElementById('ghFileUrl');
+  if (pc) { pc.value = v; ghSaveSettings(); }
+}
+function mobSyncGhToken() {
+  // oninput fires with real chars (field unmasked while focused)
+  const mob = document.getElementById('mobGhToken');
+  const v = mob.value;
+  mob.dataset.real = v;
+  const pc = document.getElementById('ghToken');
+  if (pc) { pc.dataset.real = v; }
+  ghSaveToken();
+}
+
+function mobGhPush() {
+  const msg = document.getElementById('mobGhCommitMsg');
+  const pcMsg = document.getElementById('ghCommitMsg');
+  // Sync mobile's (possibly edited) message to the PC field so ghPush() picks it up
+  if (pcMsg && msg) pcMsg.value = msg.value.trim() || 'Update curriculum data';
+  ghPush();
+  document.getElementById('mobGhCommitRow').style.display = 'none';
+}
+function mobCancelCommit() {
+  document.getElementById('mobGhCommitRow').style.display = 'none';
+}
+
+// ghPushModal handles both mobile and PC (defined as single function below)
+
+// ghSetStatus already handles both PC and mobile via ghSetStatusBoth below
+
+// ── Raw JSON in Files tab ──
+function mobSyncJsonView() {
+  const ta = document.getElementById('mobRawJson');
+  if (ta) ta.value = JSON.stringify(data, null, 2);
+}
+
+function mobApplyRawJson() {
+  const ta = document.getElementById('mobRawJson');
+  if (!ta) return;
+  try {
+    data = JSON.parse(ta.value);
+    render(); refreshJsonPanel(); toast('JSON applied','s');
+  } catch(e) { toast('Invalid JSON: ' + e.message, 'e'); }
+}
+
+function mobCopyJson() {
+  const ta = document.getElementById('mobRawJson');
+  if (!ta) return;
+  navigator.clipboard.writeText(ta.value).then(() => toast('Copied!','s')).catch(() => {
+    ta.select(); document.execCommand('copy'); toast('Copied!','s');
+  });
+}
+
+// Keep mobile JSON view in sync when data changes (handled inside refreshJsonPanel directly)
+
+// ── Init on mobile: default to Edit tab ──
+window.addEventListener('load', () => {
+  if (isMobile()) {
+    document.querySelectorAll('.mob-bar-btn').forEach(b => b.classList.remove('active'));
+    const editBtn = document.getElementById('mobBtnEdit');
+    if (editBtn) editBtn.classList.add('active');
+    mobActiveTab = 'edit';
+    // gh fields are handled by ghInitInputs(), no need to re-set here
+    // Sync theme button active state inside the Files > Appearance section
+    const savedTheme = localStorage.getItem('ej-synced-theme') || localStorage.getItem('eduyomi-theme') || 'dark';
+    document.querySelectorAll('.theme-bg-btn').forEach(b => b.classList.toggle('active', b.dataset.t === savedTheme));
+    const savedAccent = localStorage.getItem('ej-synced-accent') || localStorage.getItem('eduyomi-accent') || '#7c6af7';
+    document.querySelectorAll('.accent-dot').forEach(d => d.classList.toggle('active', d.dataset.c === savedAccent));
+  }
+});
+
+// ── Re-render tree drawer when tree updates (handled inside renderTree directly) ──
+
+</script>
+
+<!-- MOBILE BOTTOM BAR + TAB PANELS -->
+
+<!-- Tree Drawer Backdrop -->
+<div class="mob-backdrop" id="mobTreeBackdrop" onclick="mobCloseTree()"></div>
+
+<!-- Tree Drawer (slides from left, separate from sidebar) -->
+<div class="mob-tree-drawer" id="mobTreeDrawer">
+  <div class="mob-tree-drawer-header">
+    <span style="font-weight:700;font-size:13px;font-family:var(--font-display)">🌲 Tree</span>
+    <button class="btn btn-xs" onclick="mobCloseTree()">✕</button>
+  </div>
+  <div class="mob-tree-content" id="mobTreeContent">
+    <!-- cloned tree will be rendered here -->
+  </div>
+</div>
+
+<!-- Files Tab Panel -->
+<div class="mob-tab-panel" id="mobFilesPanel">
+  <!-- Local Source -->
+  <!-- GitHub Sync -->
+  <div class="mob-files-section">
+    <div class="mob-files-title" id="mobGhTitle" onclick="mobToggleSection('mobGhBody',this)">
+      <span class="gh-toggle-arrow">▶</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;opacity:.75"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub Sync
+    </div>
+    <div class="mob-files-body" id="mobGhBody">
+      <!-- URL and token auto-filled from Supabase login -->
+      <input type="hidden" id="mobGhFileUrl">
+      <input type="hidden" id="mobGhToken" data-masked="1">
+      <div class="mob-files-row">
+        <button class="btn btn-sm" onclick="ghFetch()">⬇ Pull</button>
+        <button class="btn btn-sm btn-success" onclick="ghPushModal()">⬆ Push</button>
+      </div>
+      <div class="gh-commit-row" id="mobGhCommitRow" style="display:none">
+        <textarea class="mob-files-input" id="mobGhCommitMsg" placeholder="Commit message…" rows="3" style="resize:none;min-height:38px;max-height:120px;font-family:var(--font-mono);font-size:11px;line-height:1.5;margin-bottom:0;"></textarea>
+        <button class="btn btn-sm btn-accent" onclick="mobGhPush()">✓ Commit</button>
+        <button class="btn btn-sm btn-danger" onclick="mobCancelCommit()">✕</button>
+      </div>
+      <div class="gh-status" id="mobGhStatus"></div>
+    </div>
+  </div>
+
+  <!-- Raw JSON View -->
+  <div class="mob-files-section">
+    <div class="mob-files-title" id="mobJsonTitle" onclick="mobToggleSection('mobJsonBody',this)">
+      <span class="gh-toggle-arrow">▶</span> { } Raw JSON
+    </div>
+    <div class="mob-files-body mob-json-area" id="mobJsonBody">
+      <textarea class="mob-json-view" id="mobRawJson" spellcheck="false" oninput="mobApplyRawJson()"></textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-sm" style="flex:1;justify-content:center;height:48px;font-size:14px;border-radius:12px;" onclick="mobCopyJson()">⎘ Copy</button>
+        <button class="btn btn-sm btn-success" style="flex:1;justify-content:center;height:48px;font-size:14px;border-radius:12px;" onclick="mobApplyRawJson()">✓ Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Appearance (Theme + Accent) — collapsible inside Files -->
+  <div class="mob-files-section">
+    <div class="mob-files-title" id="mobAppearanceTitle" onclick="mobToggleSection('mobAppearanceBody',this)">
+      <span class="gh-toggle-arrow">▶</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;opacity:.75"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Appearance
+    </div>
+    <div class="mob-files-body" id="mobAppearanceBody">
+      <div class="mob-settings-label" style="margin-bottom:8px;">Theme</div>
+      <div class="mob-theme-row" style="margin-bottom:14px;">
+        <button class="theme-bg-btn" onclick="setTheme('dark')" data-t="dark">🌙 Dark</button>
+        <button class="theme-bg-btn" onclick="setTheme('amoled')" data-t="amoled">⬛ AMOLED</button>
+        <button class="theme-bg-btn" onclick="setTheme('light')" data-t="light">☀️ Light</button>
+      </div>
+      <div class="mob-settings-label" style="margin-bottom:10px;">Accent Color</div>
+      <div class="mob-accent-row">
+        <div class="mob-accent-dot accent-dot" style="background:#7c6af7" data-c="#7c6af7" onclick="setAccent(this)" title="Violet"></div>
+        <div class="mob-accent-dot accent-dot" style="background:#3b82f6" data-c="#3b82f6" onclick="setAccent(this)" title="Blue"></div>
+        <div class="mob-accent-dot accent-dot" style="background:#10b981" data-c="#10b981" onclick="setAccent(this)" title="Emerald"></div>
+        <div class="mob-accent-dot accent-dot" style="background:#f59e0b" data-c="#f59e0b" onclick="setAccent(this)" title="Amber"></div>
+        <div class="mob-accent-dot accent-dot" style="background:#ec4899" data-c="#ec4899" onclick="setAccent(this)" title="Pink"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE BOTTOM NAV — Settings tab replaced with Expand toggle -->
+<div class="mob-bottom-bar" id="mobBottomBar">
+  <button class="mob-bar-btn" id="mobBtnTree" onclick="mobShowTab('tree')">
+    <span class="mob-bar-icon">🌲</span>Tree
+  </button>
+  <button class="mob-bar-btn active" id="mobBtnEdit" onclick="mobShowTab('edit')">
+    <span class="mob-bar-icon">✏️</span>Edit
+  </button>
+  <button class="mob-bar-btn" id="mobBtnFiles" onclick="mobShowTab('files')">
+    <span class="mob-bar-icon">📁</span>Files
+  </button>
+  <button class="mob-bar-btn" id="mobBtnExpand" onclick="mobToggleExpand(this)" title="Expand / Collapse all">
+    <span class="mob-bar-icon">⇅</span>Expand
+  </button>
+</div>
+
+</div><!-- end #app-root -->
+
+<script>
+/* ═══ AUTH GATE LOGIC ═══ */
+(function(){
+  const SUPABASE_URL = "https://ppoalwsjkqofajrovpzw.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwb2Fsd3Nqa3FvZmFqcm92cHp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMDI5MzksImV4cCI6MjA5MzU3ODkzOX0.SUZcNZXBGF_aBywNxNd8D5idmR6H1-_7jEwOd8d0FWk";
+  const SESSION_KEY = "ej_auth_ok";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function clearSensitiveData() {
+    localStorage.removeItem("ej-gh-token");
+    localStorage.removeItem("ej-gh-fileurl");
+    sessionStorage.removeItem(SESSION_KEY);
+  }
+
+  function showApp() {
+    document.getElementById("auth-gate").style.display = "none";
+    document.getElementById("app-root").style.display = "block";
+    startInactivityTimer();
+  }
+
+  function lockApp() {
+    clearSensitiveData();
+    document.getElementById("auth-gate").style.display = "flex";
+    document.getElementById("app-root").style.display = "none";
+    document.getElementById("gate-pw").value = "";
+    document.getElementById("gate-user").value = "";
+    document.getElementById("gate-user").focus();
+  }
+
+  function startInactivityTimer() {
+    // inactivity lock removed
+  }
+
+  // ── Clear token on tab/browser close ──
+  window.addEventListener("beforeunload", () => clearSensitiveData());
+  window.addEventListener("pagehide", () => clearSensitiveData());
+
+  // Check if already authenticated this session
+  if (sessionStorage.getItem(SESSION_KEY) === "1") { showApp(); return; }
+  // Always clear any leftover tokens on fresh load
+  clearSensitiveData();
+
+  window.gateToggleEye = function() {
+    const inp = document.getElementById("gate-pw");
+    inp.type = inp.type === "password" ? "text" : "password";
+  };
+
+  window.gateLogin = async function() {
+    const username = document.getElementById("gate-user").value.trim().toLowerCase();
+    const pw = document.getElementById("gate-pw").value.trim();
+    const btn = document.getElementById("gate-submit-btn");
+    const err = document.getElementById("gate-error");
+    if (!username) { document.getElementById("gate-user").focus(); return; }
+    if (!pw) { document.getElementById("gate-pw").focus(); return; }
+
+    const email = username + "@eduyomi.app";
+    btn.disabled = true;
+    btn.innerHTML = '<span class="gate-spinner"></span>';
+    err.classList.remove("show");
+
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+
+      if (error) {
+        throw error;
+      }
+      sessionStorage.setItem(SESSION_KEY, "1");
+      try { localStorage.setItem("ej-auth-displayname", username); } catch(_) {}
+
+      // Fetch gh_token + repo from user_profiles
+      try {
+        const { data: profile, error: profErr } = await sb
+          .from("users")
+          .select("gh_token")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profErr) {
+          console.error('[Eduyomi] users table fetch error:', profErr);
+          toast('Profile error: ' + (profErr.message || JSON.stringify(profErr)), 'e');
+        } else if (profile) {
+          console.log('[Eduyomi] profile fetched:', JSON.stringify(profile));
+          if (profile.gh_token) {
+            _sessionGhToken = profile.gh_token;
+            console.log('[Eduyomi] token set, length:', profile.gh_token.length);
+          } else {
+            console.warn('[Eduyomi] gh_token is null/empty in users table');
+            toast('Warning: no GitHub token found in your profile', 'e');
+          }
+          setTimeout(() => {
+            if (typeof ghInitInputs === 'function') ghInitInputs();
+          }, 500);
+        } else {
+          console.warn('[Eduyomi] profile is null — no row found in users table for this user id');
+          toast('Warning: no profile row found in users table', 'e');
+        }
+      } catch(profEx) {
+        console.error('[Eduyomi] profile fetch exception:', profEx);
+        toast('Profile fetch exception: ' + profEx.message, 'e');
+      }
+
+      setTimeout(showApp, 400);
+
+    } catch(e) {
+      err.textContent = e.message || 'Incorrect username or password.';
+      err.classList.add("show");
+      btn.disabled = false;
+      btn.textContent = "Unlock";
+      document.getElementById("gate-pw").value = "";
+      document.getElementById("gate-pw").focus();
+    }
+  };
+
+  // Focus username input first
+  document.getElementById("gate-user").focus();
+})();
+</script>
+</body>
+</html>
