@@ -1,6 +1,6 @@
 # 🛡️ Eduyomi
 
-**Eduyomi** is a high-performance, open-source academic portal engineered to provide students with a streamlined, searchable interface for mastering **Economics**.
+**Eduyomi** is a high-performance, open-source academic portal engineered to provide students with a streamlined, searchable interface.
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
@@ -37,4 +37,4 @@ The **codebase** for this portal is licensed under the **MIT License**.
 * **Ownership**: All video content belongs strictly to the original YouTube copyright holders.
 
 ---
-*Built with ♥️ for Economics Community*
+*Built with ♥️*
