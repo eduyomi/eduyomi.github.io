@@ -2215,13 +2215,23 @@ function _doOpenSourceEditor(activeRepo, token, editorPath) {
   overlay.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 
-  // If a custom editorPath is provided (from repo card button), always load it fresh
+  // If a custom editorPath is provided (full URL from repo card button), load it fresh
   if (typeof editorPath === 'string' && editorPath) {
     loading.style.opacity = '1';
     loading.style.display = 'flex';
     iframe.style.opacity = '0';
     iframe.dataset.loaded = '';
-    iframe.src = editorPath;
+
+    // Build GitHub Pages URL from raw URL so HTML renders properly
+    // raw.githubusercontent.com/USER/REPO/BRANCH/PATH → USER.github.io/REPO/PATH
+    let loadUrl = editorPath;
+    const rawMatch = editorPath.match(/^https?:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/);
+    if (rawMatch) {
+      const [, user, repo, , filePath] = rawMatch;
+      loadUrl = 'https://' + user + '.github.io/' + repo + '/' + filePath;
+    }
+
+    iframe.src = loadUrl;
     iframe.addEventListener('load', function onLoad() {
       iframe.removeEventListener('load', onLoad);
       iframe.dataset.loaded = '1';
@@ -3836,8 +3846,8 @@ function setActiveRepo(user, repo) {
   if (fileHint) localStorage.setItem('ej-active-file-hint', fileHint);
   else localStorage.removeItem('ej-active-file-hint');
 
-  // Push live to editor iframe (only updates field if editor is already open)
-  _syncEditorFileUrl(fileHint || ('https://github.com/' + repoPath + '/blob/main/'));
+  // Push live to editor iframe — only sync when we have a real file URL, not a partial placeholder
+  if (fileHint) _syncEditorFileUrl(fileHint);
 
   return active || null;
 }
@@ -3875,7 +3885,8 @@ function deleteRepo(user, repo) {
     localStorage.setItem('ej-active-repo-hint', newActive.user + '/' + newActive.repo);
     if (newFileHint) localStorage.setItem('ej-active-file-hint', newFileHint);
     else localStorage.removeItem('ej-active-file-hint');
-    _syncEditorFileUrl(newFileHint || ('https://github.com/' + newActive.user + '/' + newActive.repo + '/blob/main/'));
+    if (newFileHint) _syncEditorFileUrl(newFileHint);
+    else _syncEditorClearUrl();
   }
 }
 
@@ -3975,7 +3986,7 @@ function _renderSavedRepos() {
       window._repoFileMap[mapKey] = { fileObj: f, user: r.user, repo: r.repo };
       const isActive = r.isActive && r.activeJson && r.activeJson.rawUrl === f.rawUrl;
       const activeEditorPath = isActive && !r.directUrl
-        ? (r.user + '/' + r.repo + '/editor/source-editor.html')
+        ? ('https://raw.githubusercontent.com/' + r.user + '/' + r.repo + '/' + branch + '/editor/source-editor.html')
         : null;
       return '<div class="repo-file-row' + (isActive ? ' active' : '') + '" data-mapkey="' + _esc(mapKey) + '">'
         + '<div class="repo-file-dot"></div>'
