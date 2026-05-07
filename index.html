@@ -1542,11 +1542,10 @@
       transition: all .15s;
     }
     .repo-saved-del:hover { border-color: #f87171; color: #f87171; }
-    /* Source Editor button row inside active repo card */
     .repo-source-editor-btn {
       display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 13px; border-radius: 8px; font-size: .78rem; font-weight: 600;
-      font-family: inherit; cursor: pointer;
+      font-family: inherit; cursor: pointer; flex-shrink: 0;
       color: var(--accent);
       background: color-mix(in srgb, var(--accent) 13%, transparent);
       border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
@@ -1555,9 +1554,6 @@
     .repo-source-editor-btn:hover {
       background: color-mix(in srgb, var(--accent) 22%, transparent);
       border-color: var(--accent);
-    }
-    .repo-source-editor-btn--inline {
-      padding: 3px 9px; font-size: .72rem; margin-left: auto;
     }
     /* Files inside a saved repo card */
     .repo-files-list {
@@ -3891,9 +3887,56 @@ function openRepoModal() {
   document.getElementById('repoModal').classList.add('open');
   setTimeout(() => document.getElementById('repoInput').focus(), 250);
 }
+// Tracks whether a statement should be shown after the modal closes
+let _pendingStatementRepo = null;
+
 function closeRepoModal() {
   document.getElementById('repoModal').classList.remove('open');
+  // Show the repository statement right after the modal closes
+  if (_pendingStatementRepo) {
+    const { user, repo } = _pendingStatementRepo;
+    _pendingStatementRepo = null;
+    setTimeout(() => _openRepoStatement(user, repo), 380);
+  }
 }
+
+async function _openRepoStatement(user, repo) {
+  const rawUrl = 'https://raw.githubusercontent.com/' + user + '/' + repo + '/HEAD/notice/statement.html';
+  try {
+    const res = await fetch(rawUrl);
+    if (!res.ok) return; // no statement.html — silently skip
+    const html = await res.text();
+
+    // Show the popup overlay with a fresh iframe using srcdoc so it renders correctly
+    if (_popupCloseTimer) { clearTimeout(_popupCloseTimer); _popupCloseTimer = null; }
+    const o      = document.getElementById('popup-overlay');
+    const loader = document.getElementById('popup-loader');
+    loader.classList.add('show');
+    const iframe = _freshIframe();
+    iframe.addEventListener('load', function handler() {
+      iframe.removeEventListener('load', handler);
+      loader.classList.remove('show');
+    });
+    iframe.srcdoc = html;
+    o.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    requestAnimationFrame(() => requestAnimationFrame(() => o.classList.add('visible')));
+  } catch(e) {
+    // Network error or no statement — skip silently
+    console.warn('[Eduyomi] Could not load repo statement:', e);
+  }
+}
+
+// ── Statement: show every time a repo file is loaded ──────────────
+function _maybeQueueRepoStatement(user, repo) {
+  _pendingStatementRepo = { user, repo };
+}
+
+// Listen for statement "accept" message so the popup closes properly
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'eduyomi-notice-accepted') closePopup();
+  if (e.data && e.data.type === 'ej:close-editor') closeSourceEditor();
+});
 
 // ── Status helper ────────────────────────────────────────────────
 function setRepoStatus(msg, type) {
@@ -3931,22 +3974,24 @@ function _renderSavedRepos() {
       const mapKey = r.user + '__' + r.repo + '__' + fi;
       window._repoFileMap[mapKey] = { fileObj: f, user: r.user, repo: r.repo };
       const isActive = r.isActive && r.activeJson && r.activeJson.rawUrl === f.rawUrl;
-      const fileEditorPath = isActive && !r.directUrl
-        ? ('https://' + r.user + '.github.io/' + r.repo + '/editor/source-editor.html')
+      const activeEditorPath = isActive && !r.directUrl
+        ? (r.user + '/' + r.repo + '/editor/source-editor.html')
         : null;
       return '<div class="repo-file-row' + (isActive ? ' active' : '') + '" data-mapkey="' + _esc(mapKey) + '">'
         + '<div class="repo-file-dot"></div>'
         + '<span class="repo-file-name">' + _esc(f.name) + '</span>'
         + (isActive
-            ? '<button class="repo-source-editor-btn repo-source-editor-btn--inline" data-editor-path="' + _esc(fileEditorPath || '') + '">'
-              + '<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
-              + ' Source Editor</button>'
+            ? '<button class="repo-source-editor-btn" data-editor-path="' + _esc(activeEditorPath || '') + '">'
+              + '<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+              + ' Source Editor'
+              + '</button>'
               + '<span class="repo-file-active-tag">Active</span>'
             : '<button class="repo-file-load-btn" data-mapkey="' + _esc(mapKey) + '">Load</button>')
         + '</div>';
     }).join('') : '<div style="padding:9px 14px;font-size:.78rem;color:var(--text-muted)">No JSON files found</div>';
 
     const rmId = 'rmdel-' + Math.random().toString(36).slice(2);
+    const sourceEditorBtnHtml = '';
     return '<div class="repo-saved-card' + (r.isActive ? ' active' : '') + '">'
       + '<div class="repo-saved-top">'
       + '<div class="repo-saved-icon"><img src="https://github.com/' + _esc(r.user) + '.png?size=68" alt="' + _esc(r.user) + '" onerror="_repoAvatarFallback(this)"/></div>'
@@ -4022,6 +4067,9 @@ async function loadFileFromCard(mapKey) {
     buildPage();
     setRepoStatus('✓ Loaded "' + _esc(fileObj.name) + '" successfully', 'success');
 
+    // Queue the repository statement to show once after the modal closes
+    _maybeQueueRepoStatement(user, repo);
+
     // Live sync to editor: update file URL and hints
     let newFileHint = '';
     if (fileObj.rawUrl) {
@@ -4086,6 +4134,9 @@ async function setRepo() {
       _renderSavedRepos();
       buildPage();
       setRepoStatus('✓ Loaded "' + _esc(fileEntry.name) + '" from direct link', 'success');
+
+      // Queue the repository statement to show once after the modal closes (only for new repos)
+      if (!existing) _maybeQueueRepoStatement(syntheticUser, syntheticRepo);
     } catch(e) {
       setRepoStatus('Failed to load JSON. Check the URL and make sure CORS is allowed.', 'error');
       console.warn('[Repo] direct json:', e);
