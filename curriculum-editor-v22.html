@@ -640,6 +640,14 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .topic-url-input::placeholder { color: var(--text-muted) !important; }
 .topic-drag { color: var(--text-muted); font-size: 11px; cursor: grab; text-align: center; }
 
+/* Cross-chapter drop zone feedback */
+.topics-dropzone { border-radius: 8px; transition: background 150ms, box-shadow 150ms; min-height: 4px; }
+.topics-dropzone.topic-drag-active { box-shadow: inset 0 0 0 1.5px color-mix(in srgb,var(--accent) 30%,transparent); }
+.topics-dropzone.topic-drag-hover {
+  background: color-mix(in srgb,var(--accent) 10%,transparent) !important;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
 /* ═══ RAW JSON PANEL ═══ */
 .json-panel {
   width: 0; background: var(--sidebar-bg); border-left: 1px solid var(--border);
@@ -798,6 +806,67 @@ hr.div { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 
 /* EMPTY */
 .empty-state { text-align: center; padding: 80px 40px; color: var(--text-muted); }
+
+/* ═══ PLAYLIST MODAL ═══ */
+#playlistModal .modal { width: min(480px, 94vw); gap: 16px; }
+.playlist-url-wrap {
+  position: relative; display: flex; align-items: center; gap: 0;
+}
+.playlist-url-wrap input {
+  width: 100%; height: 40px; padding: 0 13px;
+  background: var(--search-bg); border: 1.5px solid var(--border);
+  border-radius: 10px; color: var(--text-primary);
+  font-family: var(--font-mono); font-size: 12px; outline: none;
+  transition: border-color var(--transition), background var(--transition);
+}
+.playlist-url-wrap input:focus { border-color: var(--accent); background: var(--surface-hover); }
+.playlist-url-wrap input.invalid { border-color: var(--red); }
+.playlist-progress {
+  margin-top: 8px; display: none; flex-direction: column; gap: 6px;
+}
+.playlist-progress.show { display: flex; }
+.playlist-progress-bar-wrap {
+  height: 4px; background: var(--surface); border-radius: 99px; overflow: hidden;
+}
+.playlist-progress-bar {
+  height: 100%; background: var(--accent); border-radius: 99px;
+  transition: width 300ms ease; width: 0%;
+}
+.playlist-progress-text {
+  font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
+}
+.playlist-preview {
+  max-height: 320px; overflow-y: auto; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--surface); display: none;
+}
+.playlist-preview.show { display: block; }
+.playlist-preview-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 11px; border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.playlist-preview-item:last-child { border-bottom: none; }
+.playlist-preview-num {
+  font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);
+  min-width: 24px; flex-shrink: 0;
+}
+.playlist-preview-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-primary); }
+.playlist-preview-id { font-family: var(--font-mono); font-size: 10px; color: var(--accent); flex-shrink: 0; }
+.playlist-meta {
+  display: flex; align-items: center; gap: 8px; font-size: 12px;
+  color: var(--text-secondary); padding: 6px 2px;
+}
+.playlist-meta strong { color: var(--text-primary); }
+.playlist-meta-badge {
+  padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;
+  background: color-mix(in srgb,var(--green) 15%,transparent);
+  color: var(--green); border: 1px solid color-mix(in srgb,var(--green) 30%,transparent);
+  font-family: var(--font-mono);
+}
+.playlist-option-row {
+  display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary);
+}
+.playlist-option-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.playlist-option-row input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
 .empty-state h2 { font-family: var(--font-display); font-size: 19px; color: var(--text-secondary); margin-bottom: 8px; }
 .empty-state p { font-size: 14px; margin-bottom: 22px; }
 .empty-state .btns { display: flex; gap: 10px; justify-content: center; }
@@ -1982,8 +2051,14 @@ function buildChapterCard(ch, yi, si, ci) {
           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       </div>
       <div class="topics-header"><span>Title</span><span>URL</span><span></span></div>
-      <div id="topics-${yi}-${si}-${ci}">${topHtml}</div>
-      <button class="btn btn-sm" style="margin-top:6px" onclick="addTopic(${yi},${si},${ci})">＋ Topic</button>
+      <div id="topics-${yi}-${si}-${ci}" class="topics-dropzone"
+        ondragover="topicsZoneDragOver(event,this,${yi},${si},${ci})"
+        ondragleave="topicsZoneDragLeave(this)"
+        ondrop="topicsZoneDrop(event,${yi},${si},${ci})">${topHtml}</div>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+        <button class="btn btn-sm" onclick="addTopic(${yi},${si},${ci})">＋ Topic</button>
+        <button class="btn btn-sm" style="color:var(--red);border-color:color-mix(in srgb,var(--red) 25%,transparent)" onclick="openPlaylistModal(${yi},${si},${ci})" title="Add all videos from a YouTube playlist">▶ + Playlist</button>
+      </div>
     </div>
   </div>`;
 }
@@ -2041,6 +2116,10 @@ function cardDrag(e, type, yi, si, ci, ti) {
   e.dataTransfer.setData('text/plain', JSON.stringify({type,yi,si,ci,ti}));
   const el = e.currentTarget;
   setTimeout(() => el.classList.add('dragging'), 0);
+  // Mark all topic drop zones as receptive when dragging a topic
+  if (type === 'topic') {
+    document.querySelectorAll('.topics-dropzone').forEach(z => z.classList.add('topic-drag-active'));
+  }
 }
 function cardDragOver(e, el) {
   e.preventDefault(); e.dataTransfer.dropEffect = 'move';
@@ -2051,15 +2130,63 @@ function cardDrop(e, type, yi, si, ci, ti) {
   const el = e.currentTarget;
   el.classList.remove('drag-over');
   el.classList.remove('dragging');
-  // remove dragging from all cards (cleanup)
   document.querySelectorAll('.dragging').forEach(d => d.classList.remove('dragging'));
+  document.querySelectorAll('.topics-dropzone').forEach(z => z.classList.remove('topic-drag-active','topic-drag-hover'));
   if (!cardDragSrc || cardDragSrc.type !== type) { cardDragSrc = null; return; }
   const s = cardDragSrc; cardDragSrc = null;
   if (type==='year' && s.yi!==yi) { moveInArray(data.years, s.yi, yi); render(); refreshJsonPanel(); }
   else if (type==='subject' && s.yi===yi && s.si!==si) { moveInArray(data.years[yi].subjects, s.si, si); render(); refreshJsonPanel(); }
   else if (type==='chapter' && s.yi===yi && s.si===si && s.ci!==ci) { moveInArray(data.years[yi].subjects[si].chapters, s.ci, ci); render(); refreshJsonPanel(); }
-  else if (type==='topic' && s.yi===yi && s.si===si && s.ci===ci && s.ti!==ti) { moveInArray(data.years[yi].subjects[si].chapters[ci].topics, s.ti, ti); render(); refreshJsonPanel(); }
+  else if (type==='topic') {
+    // Same chapter reorder
+    if (s.yi===yi && s.si===si && s.ci===ci && s.ti!==ti) {
+      moveInArray(data.years[yi].subjects[si].chapters[ci].topics, s.ti, ti);
+      render(); refreshJsonPanel();
+    }
+    // Cross-chapter move: drop ON a topic row in a different chapter → insert before that topic
+    else if (!(s.yi===yi && s.si===si && s.ci===ci)) {
+      const topic = data.years[s.yi].subjects[s.si].chapters[s.ci].topics.splice(s.ti, 1)[0];
+      data.years[yi].subjects[si].chapters[ci].topics.splice(ti, 0, topic);
+      render(); refreshJsonPanel();
+      toast('Topic moved to another chapter','s');
+    }
+  }
 }
+
+// ── Cross-chapter drop zone handlers (drop on empty area of a chapter) ──
+function topicsZoneDragOver(e, el, yi, si, ci) {
+  if (!cardDragSrc || cardDragSrc.type !== 'topic') return;
+  e.preventDefault(); e.stopPropagation();
+  e.dataTransfer.dropEffect = 'move';
+  el.classList.add('topic-drag-hover');
+}
+function topicsZoneDragLeave(el) {
+  el.classList.remove('topic-drag-hover');
+}
+function topicsZoneDrop(e, yi, si, ci) {
+  e.preventDefault(); e.stopPropagation();
+  const el = document.getElementById(`topics-${yi}-${si}-${ci}`);
+  if (el) { el.classList.remove('topic-drag-hover'); el.classList.remove('topic-drag-active'); }
+  document.querySelectorAll('.topics-dropzone').forEach(z => z.classList.remove('topic-drag-active','topic-drag-hover'));
+  document.querySelectorAll('.dragging').forEach(d => d.classList.remove('dragging'));
+  if (!cardDragSrc || cardDragSrc.type !== 'topic') { cardDragSrc = null; return; }
+  const s = cardDragSrc; cardDragSrc = null;
+  // Same chapter — ignore (cardDrop handles reorder)
+  if (s.yi===yi && s.si===si && s.ci===ci) return;
+  // Move topic to end of target chapter
+  const topic = data.years[s.yi].subjects[s.si].chapters[s.ci].topics.splice(s.ti, 1)[0];
+  data.years[yi].subjects[si].chapters[ci].topics = data.years[yi].subjects[si].chapters[ci].topics || [];
+  data.years[yi].subjects[si].chapters[ci].topics.push(topic);
+  render(); refreshJsonPanel();
+  toast('Topic moved to another chapter','s');
+}
+
+// Clear drag state on dragend
+document.addEventListener('dragend', () => {
+  cardDragSrc = null;
+  document.querySelectorAll('.topics-dropzone').forEach(z => z.classList.remove('topic-drag-active','topic-drag-hover'));
+  document.querySelectorAll('.dragging').forEach(d => d.classList.remove('dragging'));
+}, true);
 
 // ─────────────────────── SYNC TREE INPUTS (realtime) ───────────────────────
 function syncTreeInput(key, val) {
@@ -3130,7 +3257,294 @@ window.addEventListener('load', () => {
   </button>
 </div>
 
+<!-- ═══ PLAYLIST MODAL ═══ -->
+<div class="modal-backdrop" id="playlistModal" onclick="if(event.target===this)closePlaylistModal()">
+  <div class="modal">
+    <div class="modal-title">▶ Add YouTube Playlist</div>
+    <div class="modal-field">
+      <label>Playlist URL</label>
+      <div class="playlist-url-wrap">
+        <input type="text" id="playlistUrlInput" placeholder="https://www.youtube.com/playlist?list=PL… or watch?v=…&list=PL…"
+          oninput="onPlaylistUrlChange()" onpaste="setTimeout(onPlaylistUrlChange,10)"
+          autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="playlist-option-row">
+      <label><input type="checkbox" id="playlistUseTitle" checked> Use video titles as topic titles</label>
+    </div>
+    <div class="playlist-progress" id="playlistProgress">
+      <div class="playlist-progress-bar-wrap"><div class="playlist-progress-bar" id="playlistProgressBar"></div></div>
+      <div class="playlist-progress-text" id="playlistProgressText">Fetching playlist…</div>
+    </div>
+    <div class="playlist-preview" id="playlistPreview"></div>
+    <div class="playlist-meta" id="playlistMeta" style="display:none"></div>
+    <div class="modal-row-btns" style="margin-top:4px">
+      <button class="btn btn-accent" style="flex:1;height:40px;font-size:13px;border-radius:10px;" id="playlistAddBtn" onclick="confirmAddPlaylist()" disabled>＋ Add All Videos</button>
+      <button class="btn" style="height:40px;font-size:13px;border-radius:10px;" onclick="closePlaylistModal()">Cancel</button>
+    </div>
+    <div id="playlistError" style="display:none;font-size:12px;color:var(--red);background:color-mix(in srgb,var(--red) 8%,transparent);border:1px solid color-mix(in srgb,var(--red) 25%,transparent);border-radius:8px;padding:8px 12px;"></div>
+  </div>
+</div>
+
 </div><!-- end #app-root -->
+
+<script>
+/* ═══════════════════════ YOUTUBE PLAYLIST FEATURE ═══════════════════════ */
+
+let _playlistTarget = null;
+let _playlistVideos = [];
+let _playlistFetching = false;
+let _playlistDebounce = null;
+
+function openPlaylistModal(yi, si, ci) {
+  _playlistTarget = {yi, si, ci};
+  _playlistVideos = [];
+  const input = document.getElementById('playlistUrlInput');
+  document.getElementById('playlistPreview').innerHTML = '';
+  document.getElementById('playlistPreview').classList.remove('show');
+  document.getElementById('playlistMeta').style.display = 'none';
+  document.getElementById('playlistProgress').classList.remove('show');
+  document.getElementById('playlistProgressBar').style.width = '0%';
+  document.getElementById('playlistError').style.display = 'none';
+  document.getElementById('playlistAddBtn').disabled = true;
+  input.value = '';
+  input.classList.remove('invalid');
+  document.getElementById('playlistModal').classList.add('open');
+  setTimeout(() => input.focus(), 150);
+}
+
+function closePlaylistModal() {
+  document.getElementById('playlistModal').classList.remove('open');
+  _playlistFetching = false;
+}
+
+function extractPlaylistId(url) {
+  url = (url || '').trim();
+  try {
+    const u = new URL(url);
+    const list = u.searchParams.get('list');
+    if (list) return list;
+  } catch {}
+  const m = url.match(/[?&]list=([^&\s]+)/);
+  if (m) return m[1];
+  // bare ID
+  if (/^PL[a-zA-Z0-9_-]{10,}$/.test(url)) return url;
+  return null;
+}
+
+function setPlaylistProgress(pct, text) {
+  document.getElementById('playlistProgressBar').style.width = pct + '%';
+  document.getElementById('playlistProgressText').textContent = text;
+}
+
+function showPlaylistError(msg) {
+  const el = document.getElementById('playlistError');
+  el.innerHTML = msg;
+  el.style.display = 'block';
+  document.getElementById('playlistProgress').classList.remove('show');
+  document.getElementById('playlistAddBtn').disabled = true;
+}
+
+// ── Strategy 1: Invidious API (many instances) ──
+async function tryInvidious(playlistId) {
+  const INSTANCES = [
+    'https://invidious.fdn.fr',
+    'https://yewtu.be',
+    'https://invidious.lunar.icu',
+    'https://inv.tux.pizza',
+    'https://invidious.privacyredirect.com',
+    'https://invidious.perennialte.ch',
+    'https://iv.melmac.space',
+    'https://yt.artemislena.eu',
+    'https://invidious.reallyaweso.me',
+    'https://invidious.nerdvpn.de',
+    'https://invidious.io.lol',
+    'https://inv.nadeko.net',
+  ];
+  for (const base of INSTANCES) {
+    try {
+      const videos = [];
+      let page = 1;
+      let name = 'Playlist';
+      while (page <= 20) {
+        const r = await fetch(`${base}/api/v1/playlists/${playlistId}?page=${page}`, {signal: AbortSignal.timeout(7000)});
+        if (!r.ok) break;
+        const d = await r.json();
+        if (page === 1) name = d.title || 'Playlist';
+        const vids = d.videos || [];
+        if (!vids.length) break;
+        for (const v of vids) {
+          if (v.videoId) videos.push({title: v.title || '', videoId: v.videoId});
+        }
+        setPlaylistProgress(30 + page * 3, `Fetching… ${videos.length} videos`);
+        if (vids.length < 100) break; // last page
+        page++;
+      }
+      if (videos.length) return {videos, name, source: 'Invidious'};
+    } catch { continue; }
+  }
+  return null;
+}
+
+// ── Strategy 3: YouTube RSS feed via CORS proxy ──
+async function tryRSSProxy(playlistId) {
+  const rssUrl = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`;
+  const proxies = [
+    `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`,
+  ];
+  for (const proxy of proxies) {
+    try {
+      const r = await fetch(proxy, {signal: AbortSignal.timeout(8000)});
+      if (!r.ok) continue;
+      const j = await r.json().catch(() => null);
+      const xmlStr = j ? (j.contents || j.data || '') : await r.text();
+      if (!xmlStr || !xmlStr.includes('<entry>')) continue;
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(xmlStr, 'application/xml');
+      const entries = xml.querySelectorAll('entry');
+      const videos = [];
+      entries.forEach(entry => {
+        const videoId = entry.querySelector('videoId')?.textContent || entry.querySelector('[name="videoId"]')?.getAttribute('yt:videoId') || '';
+        const idEl = entry.getElementsByTagNameNS('http://www.youtube.com/xml/schemas/2015','videoId')[0];
+        const id = (idEl?.textContent || videoId || '').trim();
+        const title = entry.querySelector('title')?.textContent || '';
+        if (id) videos.push({title, videoId: id});
+      });
+      const name = xml.querySelector('title')?.textContent || 'Playlist';
+      if (videos.length) return {videos, name, source: 'RSS'};
+    } catch { continue; }
+  }
+  return null;
+}
+
+// ── Strategy 4: YouTube page scrape via proxy ──
+async function tryScrapeProxy(playlistId) {
+  const ytUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
+  const proxies = [
+    `https://api.allorigins.win/get?url=${encodeURIComponent(ytUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(ytUrl)}`,
+  ];
+  for (const proxy of proxies) {
+    try {
+      const r = await fetch(proxy, {signal: AbortSignal.timeout(10000)});
+      if (!r.ok) continue;
+      const j = await r.json().catch(() => null);
+      const html = j ? (j.contents || '') : await r.text();
+      if (!html) continue;
+      // Extract from ytInitialData
+      const match = html.match(/var ytInitialData\s*=\s*(\{.+?\});<\/script>/s) ||
+                    html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/g);
+      const videos = [];
+      const name = (html.match(/<title>([^<]+)<\/title>/) || [])[1]?.replace(' - YouTube','') || 'Playlist';
+      // Grab all videoIds from page
+      const ids = [...new Set([...html.matchAll(/"videoId":"([a-zA-Z0-9_-]{11})"/g)].map(m => m[1]))];
+      const titles = [...html.matchAll(/"title":\{"runs":\[{"text":"([^"]+)"\}/g)].map(m => m[1]);
+      ids.forEach((id, i) => videos.push({title: titles[i] || '', videoId: id}));
+      if (videos.length) return {videos, name, source: 'Scraped'};
+    } catch { continue; }
+  }
+  return null;
+}
+
+async function fetchPlaylist(playlistId) {
+  setPlaylistProgress(10, 'Trying Invidious API…');
+  let result = await tryInvidious(playlistId);
+  if (result) return result;
+
+  setPlaylistProgress(55, 'Trying RSS feed…');
+  result = await tryRSSProxy(playlistId);
+  if (result) return result;
+
+  setPlaylistProgress(75, 'Trying page scrape…');
+  result = await tryScrapeProxy(playlistId);
+  if (result) return result;
+
+  throw new Error(
+    'All fetch methods failed. The playlist may be <b>private</b>, or all API services are temporarily down.<br><br>' +
+    '💡 <b>Tip:</b> Make sure the playlist is set to <b>Public</b> on YouTube, then try again.'
+  );
+}
+
+function onPlaylistUrlChange() {
+  clearTimeout(_playlistDebounce);
+  _playlistDebounce = setTimeout(triggerPlaylistFetch, 700);
+}
+
+async function triggerPlaylistFetch() {
+  if (_playlistFetching) return;
+  const url = document.getElementById('playlistUrlInput').value.trim();
+  document.getElementById('playlistError').style.display = 'none';
+  document.getElementById('playlistPreview').classList.remove('show');
+  document.getElementById('playlistMeta').style.display = 'none';
+  document.getElementById('playlistAddBtn').disabled = true;
+  _playlistVideos = [];
+
+  if (!url) return;
+
+  const listId = extractPlaylistId(url);
+  if (!listId) {
+    document.getElementById('playlistUrlInput').classList.add('invalid');
+    showPlaylistError('No playlist ID found. Paste a YouTube playlist URL containing <b>list=PL…</b>');
+    return;
+  }
+  document.getElementById('playlistUrlInput').classList.remove('invalid');
+  document.getElementById('playlistProgress').classList.add('show');
+  _playlistFetching = true;
+
+  try {
+    const result = await fetchPlaylist(listId);
+    _playlistFetching = false;
+    _playlistVideos = result.videos;
+
+    if (!_playlistVideos.length) {
+      showPlaylistError('Playlist found but returned 0 videos. It may be private or empty.');
+      return;
+    }
+
+    setPlaylistProgress(100, `✓ ${_playlistVideos.length} videos loaded via ${result.source}`);
+
+    const preview = document.getElementById('playlistPreview');
+    preview.innerHTML = _playlistVideos.map((v, i) =>
+      `<div class="playlist-preview-item">
+        <span class="playlist-preview-num">${i+1}</span>
+        <span class="playlist-preview-title" title="${esc(v.title)}">${esc(v.title || '(no title)')}</span>
+        <span class="playlist-preview-id">${esc(v.videoId)}</span>
+      </div>`
+    ).join('');
+    preview.classList.add('show');
+
+    const meta = document.getElementById('playlistMeta');
+    meta.style.display = 'flex';
+    meta.innerHTML = `<strong>${esc(result.name)}</strong> <span class="playlist-meta-badge">${_playlistVideos.length} videos</span>`;
+    document.getElementById('playlistAddBtn').disabled = false;
+    setTimeout(() => document.getElementById('playlistProgress').classList.remove('show'), 2000);
+  } catch(e) {
+    _playlistFetching = false;
+    showPlaylistError(e.message || 'Failed to fetch playlist.');
+  }
+}
+
+function confirmAddPlaylist() {
+  if (!_playlistVideos.length || !_playlistTarget) return;
+  const {yi, si, ci} = _playlistTarget;
+  const useTitle = document.getElementById('playlistUseTitle').checked;
+  data.years[yi].subjects[si].chapters[ci].topics = data.years[yi].subjects[si].chapters[ci].topics || [];
+  const topics = data.years[yi].subjects[si].chapters[ci].topics;
+  _playlistVideos.forEach(v => topics.push({title: useTitle ? (v.title || '') : '', url: v.videoId}));
+  colState.years[yi] = false;
+  colState.subjects[`${yi}-${si}`] = false;
+  colState.chapters[`${yi}-${si}-${ci}`] = false;
+  treeOpen[`y${yi}`] = true;
+  treeOpen[`y${yi}s${si}`] = true;
+  treeOpen[`y${yi}s${si}c${ci}`] = true;
+  closePlaylistModal();
+  render(); refreshJsonPanel();
+  toast(`✓ Added ${_playlistVideos.length} videos from playlist`, 's');
+  setTimeout(() => { const el = document.getElementById(`ch-card-${yi}-${si}-${ci}`); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 80);
+}
+</script>
 
 <script>
 /* ═══ AUTH GATE LOGIC ═══ */
